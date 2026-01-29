@@ -48,7 +48,7 @@ function PINN_Extrapolator_new(
         ode_f(du, u, params, t) 
         
         φ = mod(t, τ) / τ
-        nn_input = vcat((u .- vec(U_MEAN)) ./ vec(U_STD), T(sin(2π*φ)), T(cos(2π*φ)))
+        nn_input = vcat((u .- vec(U_MEAN)) ./ vec(U_STD), T(sin(2π* φ)), T(cos(2π* φ)))
         nn_correction = nn(nn_input, p_weights, trained_st)[1]
 
         for (i_local, i_global) in enumerate(nn_vars)

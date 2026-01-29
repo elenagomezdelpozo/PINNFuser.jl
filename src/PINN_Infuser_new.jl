@@ -75,21 +75,6 @@ function PINN_Infuser_new(
     U_STD  = T.(reshape(std(target_data, dims = 1), 1, :)) .+ T(1e-6)
     target_data_norm = (target_data .- U_MEAN) ./ U_STD
 
-    ode_f = ode_problem.f
-    # Slopes of target data for slope loss
-    target_slopes = zeros(size(target_data))
-    target_slopes = zeros(size(target_data))
-    dt_approx = training_steps[2] - training_steps[1]
-    for j in 1:size(target_data_norm, 2)
-        # Simple central difference
-        target_slopes[2:end-1, j] = (target_data_norm[3:end, j] .- target_data_norm[1:end-2, j]) ./ (2*dt_approx)
-        target_slopes[1, j] = target_slopes[2, j] # boundary fill
-        target_slopes[end, j] = target_slopes[end-1, j]
-    end
-    S_MEAN = vec(mean(target_slopes, dims=1))
-    S_STD = vec(std(target_slopes, dims=1)) .+ 1e-6
-    target_slopes_norm = (target_slopes .- S_MEAN') ./ S_STD'
-
     function pinn_ode!(du, u, p_weights, t) # Current weights
         ode_f(du, u, params, t) 
         
@@ -123,8 +108,8 @@ function PINN_Infuser_new(
         end
         return hcat(sol.u...)'
     end
-    function data_loss(pred_norm, data, nn_vars)
-        return sum(mean(abs2, pred_norm[:, j] .- data[:, j]) for j in nn_vars) 
+    function data_loss(pred_norm, target_data_norm, nn_vars)
+        return sum(mean(abs2, pred_norm[:, j] .- target_data_norm[:, j]) for j in nn_vars) 
     end
 
     function physics_loss(pred_mat, p_NN, phy_vars)
@@ -156,21 +141,7 @@ function PINN_Infuser_new(
         # Penalize difference in state AND difference in derivative
         return mean(abs2, u_start .- u_end) + mean(abs2, du_start .- du_end)    
     end
-    """
-    function slope_loss(pred, p_NN, smooth_vars)
-        pred_mat = hcat(pred.u...)'        
-        l = 0.0
-        for (i, t) in enumerate(training_steps)
-            u = pred_mat[i, :]
-            du_pred = similar(u)
-            pinn_ode!(du_pred, u, p_NN, t)
-            l += mean(abs2.(
-                du_pred[smooth_vars] .- target_slopes_norm[i, smooth_vars]
-            ))
-        end
-        return l
-    end
-    """
+
     function loss(p_weights)
         pred_mat = predict(p_weights)
         pred_mat = hcat(pred_mat.u...)'
@@ -185,7 +156,6 @@ function PINN_Infuser_new(
         return L_data + 
             (physics_weight * L_phys) + 
             (period_weight * L_per) 
-            # (slope_weight * L_slope)   
     end
 
     adtype = Optimization.AutoForwardDiff()
