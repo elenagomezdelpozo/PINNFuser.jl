@@ -15,7 +15,7 @@ tspan = (0.0, 7.0)
 num_of_samples = 300
 tsteps = range(5.0, 7.0, length = num_of_samples)
 
-loaded_data = readdlm("examples/OneChamberModelCVS/original_data.txt")
+loaded_data = readdlm("/Applications/Desktop/CODE/Thesis/PINNFuser.jl/examples/OneChamberModelCVS/original_data.txt")
 extrap_original_data = Array{Float64}(loaded_data)[1:3000, :]
 original_data = extrap_original_data[751:1050, :]
 

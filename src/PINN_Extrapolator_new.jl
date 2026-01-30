@@ -23,10 +23,9 @@ This function takes a pre-trained neural network's parameters (`pretrained_param
 - `dtmax::Float64 = 1e-2`: The maximum time step for the ODE solver.
 """
 function PINN_Extrapolator_new(
-    base_problem::SciMLBase.ODEProblem,
+    ode_problem::SciMLBase.ODEProblem,
     nn::Lux.Chain,
     pretrained_params::Tuple{Any,Any, Any, Any},
-    params,
     tspan::Tuple{Float64,Float64},
     num_of_samples::Int,
     path_to_save::String;
@@ -38,25 +37,23 @@ function PINN_Extrapolator_new(
     τ::Float64 = 1.0,
     clip_nn::Float64 = 5.0,
 )::Nothing
-    trained_u, trained_st, U_MEAN, U_STD = pretrained_params
+
+    trained_p, trained_st, U_MEAN, U_STD = pretrained_params
     new_tseps = range(tspan[1], tspan[2], length = num_of_samples)
-    nn_vars === nothing && (nn_vars = collect(1:length(base_problem.u0)))
 
-    ode_f = base_problem.f
-    T = eltype(trained_u)
-    function pinn_ode!(du, u, p_weights, t) # Current weights
-        ode_f(du, u, params, t) 
-        
-        φ = mod(t, τ) / τ
-        nn_input = vcat((u .- vec(U_MEAN)) ./ vec(U_STD), T(sin(2π* φ)), T(cos(2π* φ)))
-        nn_correction = nn(nn_input, p_weights, trained_st)[1]
+    if nn_vars === nothing
+        nn_vars = collect(1:length(ode_problem.u0))
+    end    
 
-        for (i_local, i_global) in enumerate(nn_vars)
-            du[i_global] += nn_output_weight * tanh(nn_correction[i_local])
-        end    
+    function pinn_ode!(du, u, p, t)
+        ode_problem.f(du, u, ode_problem.p, t) # original ODE problem
+        nn_output = nn(u, trained_p, trained_st)[1] # NN correction
+        for i in nn_vars
+            du[i] += nn_output_weight * nn_output[i]
+        end
     end
 
-    pinn_problem = ODEProblem(pinn_ode!, base_problem.u0, tspan, trained_u)
+    pinn_problem = ODEProblem(pinn_ode!, ode_problem.u0, tspan)
 
     solved_pinn = solve(
         pinn_problem,
