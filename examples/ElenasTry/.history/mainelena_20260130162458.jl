@@ -65,7 +65,7 @@ trained_p, trained_st, U_MEAN, U_STD = LibInfuserNew.PINN_Infuser_new(
     original_data;
     nn_output_weight = 0.1,
     physics_weight = 1.0,
-    learning_rate = 1e-3,
+    learning_rate = 5e-3,
     reltol = 1e-6,
     abstol = 1e-6,
     dtmax = 1e-2,

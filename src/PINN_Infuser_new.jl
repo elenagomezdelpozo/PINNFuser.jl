@@ -101,8 +101,30 @@ function PINN_Infuser_new(
     end
 
     # Loss data
-    function data_loss(pred_normalized, data, data_vars)
-        return sum(mean(abs2, pred_normalized[:, j] .- data[:, j]) for j in data_vars)
+    function data_loss(pred_norm, data_norm, data_vars)
+        return sum(mean(abs2, pred_norm[:, j] .- data_norm[:, j]) for j in data_vars)
+    end
+
+    function data_deriv_loss(pred_norm, data_norm, data_vars)
+        l = 0
+        for j in data_vars
+            d_pred = diff(pred_norm[:, j])
+            d_data = diff(data_norm[:, j])
+            l += mean(abs2, d_pred .- d_data)
+        end
+        return l * 100 # derivative loss weight
+    end
+    
+    function negativity_loss(pred_norm)
+        pred_sub = pred_norm[:, 4:6] # Vlv, Qav, Qmv
+        l = sum(relu.(-pred_sub).^2)
+        return 10 * l / length(pred_sub)
+    end
+
+    function periodic_loss(pred_norm)
+        start_u = pred_norm[1, :]
+        end_u   = pred_norm[end, :]
+        return mean(abs2.(end_u - start_u))
     end
 
     """
@@ -124,8 +146,11 @@ function PINN_Infuser_new(
         pred = predict(p_NN)
         pred_mat = hcat(pred.u...)'
         pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
-        l = data_loss(pred_norm, target_data_norm, data_vars)
-        return l
+        l_data = data_loss(pred_norm, target_data_norm, data_vars)
+        l_data_der = data_deriv_loss(pred_norm, target_data_norm, data_vars)
+        l_neg = negativity_loss(pred_norm) # not giving norm because it diminishes the loss
+        l_periodic = periodic_loss(pred_norm)
+        return l_data + l_data_der + l_neg + l_periodic
     end
 
     # Optimization
@@ -135,16 +160,36 @@ function PINN_Infuser_new(
     losses = Float64[]
 
     callback = function(p_NN, l)
+        pred = predict(p_NN.u)
+        pred_mat = hcat(pred.u...)'
+        pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
+
+        # Individual losses
+        l_data = data_loss(pred_norm, target_data_norm, data_vars)
+        l_data_der = data_deriv_loss(pred_norm, target_data_norm, data_vars)
+        l_neg = negativity_loss(pred_norm)
+        l_periodic = periodic_loss(pred_norm)
+
         push!(losses, l)
-        println("Iter $(length(losses)): Loss = $l")
+
+        println(
+            "Iter $(length(losses)) | " *
+            "Total: $(round(l, sigdigits=5)) | " *
+            "Data: $(round(l_data, sigdigits=5)) | " *
+            "Deriv: $(round(l_data_der, sigdigits=5)) | " *
+            "Neg: $(round(l_neg, sigdigits=5)) | " *
+            "Periodic: $(round(l_periodic, sigdigits=5))"
+        )
+
         if early_stopping && length(losses) > 50 &&
-           losses[end] > maximum(losses[end-10:end-1])
+        losses[end] > maximum(losses[end-10:end-1])
             println("Early stopping at iter $(length(losses))")
             return true
-        else
-            return false
         end
+
+        return false
     end
+
 
     trained_params = Optimization.solve(
         optprob,
@@ -163,7 +208,6 @@ function PINN_Infuser_new(
             @printf(io, "%d %.12f\n", i, L)
         end
     end
-
     return (trained_params.u, st, U_MEAN, U_STD)
 end
 

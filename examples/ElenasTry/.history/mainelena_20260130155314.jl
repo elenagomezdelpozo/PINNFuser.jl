@@ -23,7 +23,7 @@ Eshift = 0.0
 
 # Do not change these
 num_of_samples_per_cycle = 150
-num_of_samples = num_of_samples_per_cycle * num_of_cycles 
+num_of_samples = num_of_samples * num_of_cycles 
 tsteps = range(5.0, 5.0 + num_of_cycles * τ , length = num_of_samples)
 loaded_data = readdlm("/Applications/Desktop/CODE/Thesis/PINNFuser.jl/examples/OneChamberModelCVS/original_data.txt")
 extrap_original_data = Array{Float64}(loaded_data)[1:Int(floor(extrapolation_tspan[2] * num_of_samples_per_cycle)), :]
@@ -63,9 +63,9 @@ trained_p, trained_st, U_MEAN, U_STD = LibInfuserNew.PINN_Infuser_new(
     params,
     tsteps,
     original_data;
-    nn_output_weight = 0.1,
+    nn_output_weight = 1,
     physics_weight = 1.0,
-    learning_rate = 1e-3,
+    learning_rate = 5e-3,
     reltol = 1e-6,
     abstol = 1e-6,
     dtmax = 1e-2,
@@ -97,6 +97,7 @@ LibInfuserNew.PINN_Extrapolator_new(
 mkpath("plots")
 
 pinn_pred = readdlm("cvs_lib_extrapolation.txt", ',', Float64)
+print(size(pinn_pred))
 ode_problem_extrap = ODEProblem(NIK!, u0, extrapolation_tspan, params)
 
 ode_sol =
