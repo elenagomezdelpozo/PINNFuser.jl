@@ -1,10 +1,10 @@
 module elenasimpleModel
 
-export NIK!, NIK_PINN!, Valve, ShiElastance, DShiElastance
+export NIK!, NIK_PINN!, Valve, Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a
 
 function Valve(R, deltaP, open)
     dq = 0.0
-    if (-open) < 0.0
+    if (open) > 0.0
         dq = deltaP / R
     else
         dq = 0.0
@@ -12,7 +12,7 @@ function Valve(R, deltaP, open)
     return dq
 
 end
-function ShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift)
+function Elastance_v(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift)
     τₑₛ = τₑₛ * τ
 
     τₑₚ = τₑₚ * τ
@@ -28,8 +28,7 @@ function ShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift)
 
     return E 
 end
-
-function DShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift)
+function DShiElastance_v(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift)
 
     τₑₛ = τₑₛ * τ
     τₑₚ = τₑₚ * τ
@@ -43,6 +42,26 @@ function DShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift
     DE = (Eₘₐₓ - Eₘᵢₙ) * DEₚ
 
     return DE 
+end
+
+function Elastance_a(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ)
+    tₙ = rem(t, τ)
+    if τₑₛ < tₙ <= τₑₚ
+        eₚ = 1 - cos(2 * pi * (tₙ - τₑₛ) / (τₑₛ - τₑₚ))
+    else
+        eₚ = 0.0
+    end
+    return Eₘᵢₙ + 0.5 * (Eₘₐₓ - Eₘᵢₙ) * eₚ
+end
+
+function DShiElastance_a(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ)
+    tₙ = rem(t, τ)
+    if τₑₛ < tₙ <= τₑₚ
+        deₚ = sin((2 * pi / (τₑₛ - τₑₚ)) * (tₙ - τₑₛ)) * (2 * pi / (τₑₛ - τₑₚ))
+        return 0.5 * (Eₘₐₓ - Eₘᵢₙ) * deₚ
+    else
+        return 0.0
+    end
 end
 
 #Shi timing parameters
