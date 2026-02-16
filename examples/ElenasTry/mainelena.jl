@@ -44,9 +44,9 @@ function NIK!(du, u, p, t)
     pLV, psa, psv, Vlv, Qav, Qmv, Qs = u
 
     du[1] =
-        (Qmv - Qav) * ShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift) +
-        pLV / ShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift) *
-        DShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift)
+        (Qmv - Qav) * Elastance_v(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift) +
+        pLV / Elastance_v(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift) *
+        DShiElastance_v(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift)
     # Left Ventricle
     du[2] = (Qav - Qs) / Csa #Systemic arteries
     du[3] = (Qs - Qmv) / Csv # Venous
@@ -64,15 +64,14 @@ trained_p, st= LibInfuserNew.PINN_Infuser_new(
     params,
     tsteps,
     original_data;
-    physics_weight = 1.0,
     learning_rate = 1e-3,
     reltol = 1e-6,
     abstol = 1e-6,
     dtmax = 1e-2,
     iters = 500,
     loss_logfile = "training_logs/loss_history.txt",
-    nn_vars = [1, 2, 3, 4],
-    data_vars = [1, 2, 3, 4, 5, 6, 7],
+    nn_vars = [1, 2, 3, 4 ],
+    data_vars = [1, 2, 3, 4 ],
     physics_vars = [1, 5, 6, 7],
 )
 
