@@ -17,12 +17,11 @@ tspan = (0.0, 40.0)
 num_of_cycles = 6 # 1 cycle for training
 τ = 1.0 # Cardiac cycle period
 extrapolation_tspan = (0.0, 40.0)
-u0 = [8.996273159980774, 8.988717019557953, 8.99097204208374, 8.93659794330597, 151.67994797229767, 89.82125759124756, 0.0, 0.0, 0.0, 0.0]
-# u0 = [6.0, 6.0, 6.0, 6.0, 200.0, 60.0, 0.0, 0.0, 0.0, 0.0] 
+τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la = 0.3, 0.45, 0.25, 0.15
+Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = p_pred
+u0 = [7.0, 7.0, 7.0, 7.0, 200.0, 60.0, 0.0, 0.0, 0.0, 0.0] 
 #.    pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv
-params = [0.3, 0.45, 0.012, 0.004, 1.01, 0.075, 1.6, 20.5, 2.5, 0.1, 0.92, 0.09, 0.25, 0.15]
-τₑₛ_lv, τₑₚ_lv, Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, τₑₛ_la, τₑₚ_la, Eₘₐₓ_la, Eₘᵢₙ_la = params
-Rmv, Zao, Rs, Rsv, Csa, Csv = 0.008447893738746643, 0.0059968214035034184, 1.5143817991018296, 0.06002668261528015, 0.6506799012422562, 12.513154000043869
+
 Eshift = 0.0
 τ = 1.0
 """
@@ -107,7 +106,7 @@ plots = [
         )
         plot!(time_to_plot,
             data_to_plot[:, i],
-            label = "2 CHAMBER",
+            label = "TARGET 4 CHAMBER",
             xlabel = "time",
             ylabel = labels[i],
             lw = 2

@@ -38,17 +38,17 @@ that includes both data fidelity and physical law adherence.
 # Returns
 - `Tuple{Any, Any}`: The trained parameters of the neural network.
 """
+
 function PINN_Infuser_new(
     ode_problem::SciMLBase.ODEProblem,
     nn::Lux.Chain,
-    params,
     training_steps::AbstractRange,
     target_data::AbstractMatrix{Float64};
     early_stopping::Bool = true,
-    nn_output_weight::Float64 = 1.0,
+    nn_output_weight::Float64 = 0.1,
     physics_weight::Float64 = 1.0,
     optimizer = ADAM,
-    learning_rate::Float64 = 0.001,
+    learning_rate::Float64 = 1e-3,
     reltol::Float64 = 1e-6,
     abstol::Float64 = 1e-6,
     dtmax = Inf,
@@ -58,29 +58,23 @@ function PINN_Infuser_new(
     nn_vars::Union{Nothing,Vector{Int}} = nothing,
     data_vars::Union{Nothing,Vector{Int}} = nothing,
     physics_vars::Union{Nothing,Vector{Int}} = nothing,
-)::Tuple{Any,Any}
-    
+)::Tuple{Any,Any, Any, Any}
+
     U_MEAN = vec(mean(target_data, dims = 1))
     U_STD = vec(std(target_data, dims = 1)) .+ 1e-6
-    target_data_norm = (target_data .- U_MEAN') ./ U_STD'
-
-    if nn_vars === nothing
-        nn_vars = collect(1:length(ode_problem.u0))
-    end    
-    data_vars === nothing && (data_vars = nn_vars)
-    physics_vars === nothing && (physics_vars = nn_vars)
+    data_norm = (target_data .- U_MEAN') ./ U_STD'
 
     p_NN, st = Lux.setup(rng, nn)
-    p_NN = 1e-3 * ComponentVector{Float64}(p_NN) # NN parameter initialization
+    p_NN = 1e-3 * ComponentVector{Float64}(p_NN)
 
     function pinn_ode!(du, u, p_NN, t)
         nn_output = nn(u, p_NN, st)[1]
-        ode_problem.f(du, u, params, t)
+        ode_problem.f(du, u, nothing, t)
         for (k, i) in enumerate(nn_vars)
             du[i] += nn_output_weight * nn_output[k]
-        end
+        end    
     end
-    
+
     function predict(p_NN)
         prob = ODEProblem(
             (du, u, p, t) -> pinn_ode!(du, u, p, t), 
@@ -94,189 +88,155 @@ function PINN_Infuser_new(
             saveat=training_steps,
             dtmax=dtmax,
             reltol=reltol,
-            abstol=abstol)
+            abstol=abstol
+        )
         return temp_sol
-
     end
-
     function plot_solution(temp_sol; target_data = nothing, training_steps = nothing, variable_names = nothing,)
         t = temp_sol.t
         sol_mat = hcat(temp_sol.u...)'   # (time × variables)
         n_vars = size(sol_mat, 2)
-        plt = plot(layout = (n_vars, 1), size = (900, 250 * n_vars), link = :x)
-        for i in 1:n_vars
-            plot!(plt[i], t, sol_mat[:, i], label = "PINN", linewidth = 2,)
-            plot!(plt[i], t, target_data[:, i], label = "Data", linestyle = :dash, )
-            ylabel!(plt[i], variable_names === nothing ? "Var $i" : variable_names[i])
-            if i == 1
-                title!(plt[i], "PINN Prediction vs Data")
+        plots = [
+            begin
+                p = plot(t, sol_mat[:, i], label = "2 CHAMBER", xlabel = "time", ylabel = variable_names[i], lw = 2)
+                plot!(t, target_data[:, i], label = "TARGET 4 CHAMBER", xlabel = "time", ylabel = variable_names[i], lw = 2)
+                p
             end
-            if i == n_vars
-                xlabel!(plt[i], "Time")
-            end
-        end
-        display(plt)
+            for i in 1:10
+        ]
+        plot(
+            plots...,
+            layout = (5, 2),
+            size = (900, 800)
+        )
     end
 
-    function data_1deriv_loss(pred_norm, data_norm, data_vars)
-        dt_pred = training_steps[2] - training_steps[1]
-        dt_data = dt_pred   # MUST match, since you aligned data earlier
-        l = zero(eltype(pred_norm))
-        for (k, j) in enumerate(data_vars)
-            # First derivative (central diff)
-            d1_pred = (pred_norm[3:end, j] .- pred_norm[1:end-2, j]) ./ (2 * dt_pred)
-            d1_data = (data_norm[3:end, k] .- data_norm[1:end-2, k]) ./ (2 * dt_data)
-            l += mean(abs2, d1_pred .- d1_data)
+    function compute_nn_contributions(sol, p_NN)
+        t = sol.t
+        u_mat = hcat(sol.u...)'  # (time × variables)
+        nn_contrib = zeros(length(nn_vars))
+        for (k, i) in enumerate(nn_vars)
+            nn_outputs_over_time = [
+                nn(u_mat[ti, :], p_NN, st)[1][k] for ti in 1:length(t)
+            ]
+            nn_contrib[i] = nn_output_weight * mean(nn_outputs_over_time)
         end
-        return 1e-2 * l
+        return nn_contrib
+    end
+
+    function data_1deriv_loss(p_NN, pred_sol, target_data, training_steps, data_vars)
+        dt = step(training_steps)
+        n_steps = size(target_data, 1)
+        l = 0.0
+
+        d1_target = zeros(size(target_data))
+        for i in 2:n_steps-1
+            d1_target[i, :] .= (target_data[i+1, :] .- target_data[i-1, :]) ./ (2 * dt)
+        end
+
+        d1_target[1,:] .= (target_data[2, :] .- target_data[1, :]) ./ dt
+        d1_target[end, :] .= (target_data[end, :] .- target_data[end-1, :]) ./ dt
+        du_pinn = zeros(eltype(p_NN), size(target_data, 2))
+        for ti in 1:n_steps
+            u_true = target_data[ti, :]
+            t_now = training_steps[ti]
+            pinn_ode!(du_pinn, u_true, p_NN, t_now)
+            for j in data_vars
+                diff = (du_pinn[j] - d1_target[ti, j]) / U_STD[j]
+                l += abs2(diff)
+            end
+        end
+
+        return l / (n_steps * length(data_vars))
+    end
+
+    function data_loss(pred_norm, data_norm, data_vars)
+        return sum(mean(abs2, pred_norm[:, j] .- data_norm[:, j]) for j in data_vars)
+    end
+
+    function physics_loss(pred_mat, p_NN)
+        l_phy = 0.0
+        for (i, t) in enumerate(training_steps)
+            u = pred_mat[i, :]
+            du = similar(u)
+            pinn_ode!(du, u, p_NN, t) # derivatives with increments from PINN
+            du_base = similar(du)
+            ode_problem.f(du_base, u, nothing, t) # derivatives from base ODE
+            l_phy += mean(abs2.(du[physics_vars] .- du_base[physics_vars]))
+        end
+        return l_phy / length(training_steps)
     end
 
     function loss(p_NN)
         pred = predict(p_NN)
         pred_mat = hcat(pred.u...)'
         pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
-
-        #l_data = data_loss(pred_norm, target_data_norm, data_vars)
-        l_1data_der = data_1deriv_loss(pred_norm, target_data_norm, data_vars)
-        #l_2data_der = data_2deriv_loss(pred_norm, target_data_norm, data_vars)
-        #l_neg = negativity_loss(pred_norm) # not giving norm because it diminishes the loss
-        #l_periodic = periodic_loss(pred_norm)
-        return l_1data_der # + l_2data_der + l_data + l_periodic + l_neg  
+        L_1deriv = data_1deriv_loss(p_NN, pred, target_data, training_steps, data_vars)
+        L_data = data_loss(pred_norm, data_norm, data_vars)
+        # L_phy = physics_loss(pred_mat, p_NN)
+        return 1e-2 * L_data + 1e-3 *L_1deriv
     end
 
-    # Optimization
     adtype = Optimization.AutoForwardDiff()
     optf = Optimization.OptimizationFunction((x, p) -> loss(x), adtype)
     optprob = Optimization.OptimizationProblem(optf, p_NN)
     losses = Float64[]
+    nn_history = Vector{Vector{Float64}}()
 
-    callback = function(p_NN, l)
-        pred = predict(p_NN.u)
+    callback = function (state, l)
+        pred = predict(state.u)
         pred_mat = hcat(pred.u...)'
         pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
+        l_1deriv = data_1deriv_loss(state.u, pred, target_data, training_steps, data_vars)
+        l_data = data_loss(pred_norm, data_norm, data_vars)
+        # l_phy = physics_loss(pred_mat, state.u)
 
-        # Individual losses
-        # l_data = data_loss(pred_norm, target_data_norm, data_vars)
-        l_1data_der = data_1deriv_loss(pred_norm, target_data_norm, data_vars)
-        # l_2data_der = data_2deriv_loss(pred_norm, target_data_norm, data_vars)
-        # l_neg = negativity_loss(pred_norm)
-        # l_periodic = periodic_loss(pred_norm)
-
-        push!(losses, l)
-
+        nn_contrib = compute_nn_contributions(pred, state.u)
+        push!(losses, 1e-2 * l_data + 1e-3 * l_1deriv)
+        push!(nn_history, nn_contrib) 
         println(
             "Iter $(length(losses)) | " *
-            "Total: $(round(l, sigdigits=5)) | " *
-            # "Data: $(round(l_data, sigdigits=5)) | " 
-            "First Deriv: $(round(l_1data_der, sigdigits=5)) | " 
-            # "Second Deriv: $(round(l_2data_der, sigdigits=5)) | " 
-            #"Neg: $(round(l_neg, sigdigits=5)) | " *
-            #"Periodic: $(round(l_periodic, sigdigits=5))"
+            "Total: $(round(l_data + l_1deriv, sigdigits=5)) | " *
+            # "First derivative: $(round(l_1deriv, sigdigits=5)) | " *
+            "Data: $(round(l_data, sigdigits=5)) | " *
+            "1st Deriv: $(round(l_1deriv, sigdigits=5)) | " 
         )
         if length(losses) % 5 == 0
-            pred = predict(p_NN.u)  # p_NN.u is Float64
-            plot_solution(
+            plt = plot_solution(
                 pred;
                 target_data = target_data,
                 variable_names = ["pLV", "pLA", "psa", "psv", "Vlv", "vLA", "Qav", "Qmv", "Qs", "Qsv"]
             )
+            display(plt)
         end
-        if early_stopping && length(losses) > 50 &&
-        losses[end] > maximum(losses[end-10:end-1])
-            println("Early stopping at iter $(length(losses))")
+        if early_stopping &&
+            length(losses) > 50 &&
+            losses[end] - maximum(losses[(end-10):(end-1)]) > 0
+            println("Early stopping at iteration $(length(losses)) with loss $(losses[end])")
             return true
+        else
+            return false
         end
-        return false
     end
 
     trained_params = Optimization.solve(
         optprob,
         optimizer(learning_rate),
-        callback=callback,
-        maxiters=iters,
+        callback = callback,
+        maxiters = iters,
     )
 
-    # Guardar historial de pérdidas
     folder = dirname(loss_logfile)
     if folder != "" && !isdir(folder)
+        println("Creating directory for training logs: $folder")
         mkpath(folder)
     end
     open(loss_logfile, "w") do io
-        for (i,L) in enumerate(losses)
+        for (i, L) in enumerate(losses)
             @printf(io, "%d %.12f\n", i, L)
         end
     end
-    return (trained_params.u, st)
+    return (trained_params.u, st, losses, nn_history)
 end
 
-end # module
-
-"""
-    function data_loss(pred_norm, data_norm, data_vars)
-        l = 0.0
-        for (k, j) in enumerate(data_vars)
-            l += mean(abs2, pred_norm[:, j] .- data_norm[:, k])
-        end
-        return l
-    end
-
-    function energy_balance_loss(pred_norm, data_norm)
-        # Ensure the Stroke Work (Area of P-V loop) is preserved
-        # Work ≈ Σ P * ΔV
-        work_pred = sum(pred_norm[:, 1] .* diff([pred_norm[:, 4]; pred_norm[1, 4]]))
-        work_data = sum(data_norm[:, 1] .* diff([data_norm[:, 4]; data_norm[1, 4]]))
-        
-        return 1e-3 * abs2(work_pred - work_data)
-    end
-    function negativity_loss(pred_norm)
-        pred_sub = pred_norm[:, 4:6] # Vlv, Qav, Qmv
-        l = sum(relu.(-pred_sub).^2)
-        return 10 * l / length(pred_sub)
-    end
-
-    function periodic_loss(pred_norm) # careful if we are working with more than 1 cycle
-        start_u = pred_norm[1, :]
-        end_u   = pred_norm[end, :]
-        return mean(abs2.(end_u - start_u))
-    end
-
-    # Loss physics
-    function physics_loss(pred_norm, p_NN)
-        l_phy = 0.0
-        for (i, t) in enumerate(training_steps)
-            u = pred_mat[i, :]
-            du = similar(u)
-            pinn_ode!(du, u, p_NN, t, params) # derivatives with increments from PINN
-            du_base = similar(du)
-            ode_problem.f(du_base, u, params, t) # derivatives from base ODE
-            l_phy += mean(abs2.(du[physics_vars] .- du_base[physics_vars]))
-        end
-        return l_phy / length(training_steps)
-    end
-
-    function data_1deriv_loss(pred_norm, data_norm, data_vars)
-        dt_pred = training_steps[2] - training_steps[1]
-        dt_data = dt_pred   # MUST match, since you aligned data earlier
-        l = zero(eltype(pred_norm))
-        for j in data_vars
-            # First derivative (central diff)
-            d1_pred = (pred_norm[3:end, j] .- pred_norm[1:end-2, j]) ./ (2 * dt_pred)
-            d1_data = (data_norm[3:end, j] .- data_norm[1:end-2, j]) ./ (2 * dt_data)
-            l += mean(abs2, d1_pred .- d1_data)
-        end
-        return 1e-2 * l
-    end
-
-    function data_2deriv_loss(pred_norm, data_norm, data_vars)
-        dt_pred = training_steps[2] - training_steps[1]
-        dt_data = dt_pred   # MUST match, since you aligned data earlier
-        l = zero(eltype(pred_norm))
-        for j in data_vars
-            # Second derivative (curvature)
-            d2_pred = (pred_norm[3:end, j] .- 2pred_norm[2:end-1, j] .+ pred_norm[1:end-2, j]) ./ dt_pred^2
-            d2_data = (data_norm[3:end, j] .- 2data_norm[2:end-1, j] .+ data_norm[1:end-2, j]) ./ dt_data^2
-            l += 0.2 * mean(abs2, d2_pred .- d2_data)
-        end
-        return 1e-6 * l
-    end
-"""
+end # module PINNInfuser
