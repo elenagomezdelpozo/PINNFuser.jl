@@ -1,0 +1,23 @@
+WARNING: Method definition setup(Optimisers.AbstractRule, ComponentArrays.ComponentArray{T, N, A, Axes} where Axes<:Tuple{Vararg{ComponentArrays.AbstractAxis{IdxMap} where IdxMap}} where A<:AbstractArray{T, N} where N where T) in module ComponentArraysOptimisersExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ComponentArrays/fwmmC/ext/ComponentArraysOptimisersExt.jl:7 overwritten in module LuxComponentArraysExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/5xfGO/ext/LuxComponentArraysExt.jl:19.
+ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
+ERROR: LoadError: ParseError:
+# Error @ /net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/src/PINN_Infuser_new.jl:82:13
+            (i in nn_vars)
+            ? du_base[i] * (1.0 + nn_output_weight * tanh(Float64(nn_out[findfirst(==(i), nn_vars)])))
+#           ╙ ── not a unary operator
+Stacktrace:
+ [1] top-level scope
+   @ ~/CV_0D_models/PINNFuser.jl/src/PINN_Infuser_new.jl:82
+ [2] include(mod::Module, _path::String)
+   @ Base ./Base.jl:495
+ [3] include(x::String)
+   @ Main.LibInfuserNew ~/CV_0D_models/PINNFuser.jl/src/lib_new.jl:1
+ [4] top-level scope
+   @ ~/CV_0D_models/PINNFuser.jl/src/lib_new.jl:4
+ [5] include(fname::String)
+   @ Base.MainInclude ./client.jl:489
+ [6] top-level scope
+   @ ~/CV_0D_models/PINNFuser.jl/examples/ElenasTry/Ares_try_GPU.jl:101
+in expression starting at /net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/src/PINN_Infuser_new.jl:82
+in expression starting at /net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/src/lib_new.jl:1
+in expression starting at /net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/examples/ElenasTry/Ares_try_GPU.jl:101
