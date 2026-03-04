@@ -7,7 +7,7 @@ using Plots, LinearAlgebra, JLD2
 using LuxCUDA          # GPU support for Lux
 using SciMLSensitivity # provides InterpolatingAdjoint / ZygoteVJP
 
-include("../ElenasTry/cvmodelelena.jl")
+include("cvmodelelena.jl")
 using .elenasimpleModel
 import Main.elenasimpleModel: Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a, Valve
 
