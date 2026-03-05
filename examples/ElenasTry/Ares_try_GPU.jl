@@ -107,7 +107,9 @@ trained_p, trained_st, losses, nn_history = LibInfuserNew.PINN_Infuser_new(
     tsteps,
     original_data;
     processor = "gpu",
-    nn_output_weight = 0.1,
+    nn_output_weight = 1.0,
+    data_weight = 1e-2,
+    deriv_weight = 1e-2,
     learning_rate = 1e-4,
     iters = 200,
     nn_vars = [1, 2, 3, 4, 5, 6],   
@@ -117,15 +119,14 @@ trained_p, trained_st, losses, nn_history = LibInfuserNew.PINN_Infuser_new(
 #Saving everything for later
 trained_p_cpu = cpu(trained_p)
 trained_st_cpu = Lux.cpu(trained_st)
-jldsave("trained_pinn_model_GPU_4.jld2"; 
+jldsave("trained_pinn_model_GPU.jld2"; 
         trained_p = trained_p_cpu, 
         trained_st = trained_st_cpu, 
-
         losses = losses,
         nn_history = nn_history,
         )
-@info "Model saved successfully to trained_pinn_model_GPU_4.jld2"
-data = load("trained_pinn_model_GPU_4.jld2")
+@info "Model saved successfully to trained_pinn_model_GPU.jld2"
+data = load("trained_pinn_model_GPU.jld2")
 trained_p = data["trained_p"]
 trained_st = data["trained_st"]
 losses = data["losses"]
@@ -140,7 +141,7 @@ function pinn_ode!(du, u, p, t)
     nn_output, _ = NN(u, p, trained_st)
     ode_problem.f(du, u, ode_params, t)
     for (k, i) in enumerate(nn_vars)
-        du[i] *= (1.0 + 0.1 * tanh(nn_output[k]))
+        du[i] += nn_output[k]
     end    
 end
 

@@ -57,7 +57,9 @@ function PINN_Infuser_new(
     target_data::AbstractMatrix{Float64};
     processor,
     early_stopping::Bool = true,
-    nn_output_weight::Float64 = 0.1,
+    nn_output_weight::Float64 = 1.0,
+    data_weight::Float64 = 1.0,
+    deriv_weight::Float64 = 1.0,
     physics_weight::Float64 = 1.0,
     optimizer = ADAM,
     learning_rate::Float64 = 1e-3,
@@ -86,7 +88,7 @@ function PINN_Infuser_new(
             nn_output = nn(u, p_NN, st)[1]
             ode_problem.f(du, u, ode_params, t)
             for (k, i) in enumerate(nn_vars)
-                du[i] *= 1 .+ nn_output_weight .* tanh.(nn_output[k])
+                du[i] += nn_output_weight * nn_output[k]
             end    
         end
 
@@ -122,9 +124,9 @@ function PINN_Infuser_new(
         end
 
         function cpu_data_loss(pred_norm, data_norm, data_vars)
-            return sum(mean(abs2, pred_norm[:, j] .- data_norm[:, j]) for j in data_vars)
+            return data_weight * sum(mean(abs2, pred_norm[:, j] .- data_norm[:, j]) for j in data_vars)
         end
-
+        
         function cpu_physics_loss(pred, p_NN, physics_vars)
             pred_mat = hcat(pred.u...)'
             l = 0.0
@@ -136,7 +138,7 @@ function PINN_Infuser_new(
                 ode_problem.f(f_base, u, ode_params, t)
                 l += mean(abs2.(du[physics_vars] .- f_base[physics_vars]))
             end
-            return l / length(training_steps)
+            return phy_weight * (l / length(training_steps))
         end
 
         function cpu_loss(p_NN)
@@ -145,7 +147,7 @@ function PINN_Infuser_new(
             pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
             L_data = cpu_data_loss(pred_norm, data_norm, data_vars)
             L_phy = cpu_physics_loss(pred, p_NN, physics_vars)        
-            return 1e-2 * L_data + 1e-4 * L_phy
+            return L_data + L_phy
         end
 
         adtype = Optimization.AutoForwardDiff()
@@ -161,11 +163,11 @@ function PINN_Infuser_new(
             l_data = cpu_data_loss(pred_norm, data_norm, data_vars)
             l_phy = cpu_physics_loss(pred, state, physics_vars)
             nn_contrib = cpu_compute_nn_contributions(pred, state)
-            push!(losses, 1e-2 * l_data + l_phy)
+            push!(losses, l_data + l_phy)
                 push!(nn_history, nn_contrib) 
                 println(
                 "Iter $(length(losses)) | " *
-                "Total: $(round(1e-2 * l_data + 1e-4 * l_phy, sigdigits=5)) | " *
+                "Total: $(round(l_data + l_phy, sigdigits=5)) | " *
                 "Data: $(round(l_data, sigdigits=5)) | " *
                 "Physics: $(round(l_phy, sigdigits=5)) | " 
             )
@@ -232,7 +234,7 @@ function PINN_Infuser_new(
 
             n = length(u)
             contrib = sum(
-                Float64.(Float32.(eachindex(u) .== nn_vars[k]) .* nn_out_cpu[k])
+                Float64.(Float32.(eachindex(u) .== nn_vars[k]) .* (nn_output_weight * nn_out_cpu[k]))
                 for k in 1:length(nn_vars)
             )
 
@@ -264,17 +266,24 @@ function PINN_Infuser_new(
         # ── Loss helpers ───────────────────────────────────────────────────────
         function gpu_data_loss(pred_mat)
             pn = (pred_mat .- U_MEAN') ./ U_STD'
-            sum(mean(abs2, pn[:,j] .- data_norm[:,j]) for j in data_vars)
+            l = sum(mean(abs2, pn[:,j] .- data_norm[:,j]) for j in data_vars)
+            return data_weight * l
         end
+        function gpu_deriv_loss(pred_mat, target_data, dt)
+            dpred   = diff(pred_mat[:, data_vars],           dims=1) ./ dt
+            dtarget = diff(target_data[:, data_vars],        dims=1) ./ dt  # ← slice target_data too!
+            return deriv_weight * mean(abs2, (dpred .- dtarget) ./ (U_STD[data_vars]' .+ 1e-6))
+        end 
 
         function gpu_loss(p)
             @info "→ Computing loss..."
             sol      = gpu_predict(p)
             pred_mat = hcat(sol.u...)'
-            total = data_weight * gpu_data_loss(pred_mat)
+            total = gpu_data_loss(pred_mat) + gpu_deriv_loss(pred_mat, target_data, dt)
             @info "✓ Loss computed: $total"
             return total
         end
+        
 
         # ── Optimiser ──────────────────────────────────────────────────────────
         adtype  = Optimization.AutoZygote()
@@ -289,7 +298,8 @@ function PINN_Infuser_new(
             sol      = gpu_predict(state)           # was state.u
             pm       = Array(hcat(sol.u...)')
             L_data   = gpu_data_loss(pm)
-            total    = data_weight * L_data
+            L_deriv   = gpu_deriv_loss(pm, target_data, dt)
+            total    = L_data + L_deriv
             push!(losses, total)
 
             p_dev   = use_gpu ? gdev(state) : state   # was state.u
@@ -303,7 +313,7 @@ function PINN_Infuser_new(
             end
             push!(nn_history, contrib ./ size(pm, 1))
 
-            @printf("Iter %4d | Total: %.5e | Data: %.5e\n", length(losses), total, L_data)
+            @printf("Iter %4d | Total: %.5e | Data: %.5e | Deriv: %.5e\n ", length(losses), total, L_data, L_deriv)
 
             if plot_every > 0 && length(losses) % plot_every == 0
                 t    = sol.t

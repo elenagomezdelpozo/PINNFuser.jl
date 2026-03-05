@@ -104,7 +104,9 @@ trained_p, trained_st, losses, nn_history = LibInfuserNew.PINN_Infuser_new(
     tsteps,
     original_data;
     processor = "cpu",
-    nn_output_weight = 0.1,
+    nn_output_weight = 1.0,
+    physics_weight = 1e-2,
+    deriv_weight = 1e-2,
     learning_rate = 1e-4,
     iters = 200,
     nn_vars = [1, 2, 3, 4, 5, 6],   
@@ -135,7 +137,7 @@ function pinn_ode!(du, u, p, t)
     nn_output, _ = NN(u, p, trained_st)
     ode_problem.f(du, u, ode_params, t)
     for (k, i) in enumerate(nn_vars)
-        du[i] *= (1.0 + 0.1 * tanh(nn_output[k]))
+        du[i] += nn_output_weight * nn_output[k]
     end    
 end
 
@@ -165,16 +167,10 @@ function nn_derivative_contribution(f_base!, f_pinn!, u_sol_base, u_sol_pinn, ts
     tmp = zeros(n_vars)
 
     for ti in 1:n_times
-        # Base ODE derivative
         f_base!(tmp, u_sol_base[ti, :], tsteps[ti])
         du_base .= tmp
-
-        # PINN derivative
         f_pinn!(tmp, u_sol_pinn[ti, :], tsteps[ti])
         du_pinn .= tmp
-
-
-        # Add difference
         nn_contrib .+= du_pinn .- du_base
     end
 
