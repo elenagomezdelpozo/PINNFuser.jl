@@ -103,6 +103,7 @@ trained_p, trained_st, losses, nn_history = LibInfuserNew.PINN_Infuser_new(
     NN,
     tsteps,
     original_data;
+    processor = "cpu",
     nn_output_weight = 0.1,
     learning_rate = 1e-4,
     iters = 200,

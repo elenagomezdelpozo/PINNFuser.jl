@@ -101,15 +101,17 @@ NN = Lux.Chain(
 include("../../src/lib_new.jl")
 using .LibInfuserNew
 trained_p, trained_st, losses, nn_history = LibInfuserNew.PINN_Infuser_new(
-    ode_problem,          # NOTE: use ode_problem, not ode_problem_f32
+    ode_problem,
     ode_params,
     NN,
     tsteps,
     original_data;
-    iters      = 200,
-    plot_every = 0,       # ← headless HPC: no display
-    nn_vars    = [1, 2, 3, 4, 5, 6],
-    data_vars  = [1, 2, 3, 4, 5, 6],
+    processor = "gpu",
+    nn_output_weight = 0.1,
+    learning_rate = 1e-4,
+    iters = 200,
+    nn_vars = [1, 2, 3, 4, 5, 6],   
+    data_vars = [1, 2, 3, 4, 5, 6],
     physics_vars = [5, 6, 7, 8, 9, 10],
 )
 #Saving everything for later
@@ -120,6 +122,8 @@ jldsave("trained_pinn_model.jld2";
         trained_st = trained_st_cpu, 
         losses = losses)
 @info "Model saved successfully to trained_pinn_model.jld2"
+
+#USING THE TRAINED MODEL
 data = load("trained_pinn_model.jld2")
 trained_p = data["trained_p"]
 trained_st = data["trained_st"]
@@ -155,12 +159,12 @@ pinn_pred = hcat(solved_pinn.u...)'
 using LinearAlgebra
 
 function nn_derivative_contribution(f_base!, f_pinn!, u_sol_base, u_sol_pinn, tsteps)
-    n_times, n_vars = size(u_sol_base)
-    du_base = zeros(n_vars)
-    du_pinn = zeros(n_vars)
-    nn_contrib = zeros(n_vars)
+    n_times, nn_vars = size(u_sol_base)
+    du_base = zeros(nn_vars)
+    du_pinn = zeros(nn_vars)
+    nn_contrib = zeros(nn_vars)
 
-    tmp = zeros(n_vars)
+    tmp = zeros(nn_vars)
 
     for ti in 1:n_times
         # Base ODE derivative
@@ -244,7 +248,7 @@ plot(
 n_epochs = length(losses)
 epochs = 1:n_epochs
 
-plot(epochs, losses,
+p = plot(epochs, losses,
      xlabel = "Epoch",
      ylabel = "Loss",
      title = "Training Loss over Epochs",
@@ -252,16 +256,17 @@ plot(epochs, losses,
      marker = :circle,
      markersize = 3,
      legend = false)
+display(p)
 
 # PLOTTING NN CONTRIBUTIONS
-n_vars = length(nn_history[1,1])  # 6 in your case
+nn_vars = length(nn_history[1,1])  # 6 in your case
 n_epochs = size(nn_history, 1)
 epochs = 1:n_epochs
 
 using Plots
 p = plot(layout = (2,3), size=(1200,800))  # 2 rows x 3 columns for 6 variables
 
-for j in 1:n_vars
+for j in 1:nn_vars
     # Extract history of variable j across epochs
     var_history = [nn_history[i,1][j] for i in 1:n_epochs]
     
