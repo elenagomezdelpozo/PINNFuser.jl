@@ -138,7 +138,7 @@ function PINN_Infuser_new(
                 ode_problem.f(f_base, u, ode_params, t)
                 l += mean(abs2.(du[physics_vars] .- f_base[physics_vars]))
             end
-            return phy_weight * (l / length(training_steps))
+            return physics_weight * (l / length(training_steps))
         end
 
         function cpu_loss(p_NN)
@@ -276,9 +276,9 @@ function PINN_Infuser_new(
         end 
 
         function gpu_loss(p)
-            @info "→ Computing loss..."
             sol      = gpu_predict(p)
             pred_mat = hcat(sol.u...)'
+            dt       = Float64(training_steps.step)  
             total = gpu_data_loss(pred_mat) + gpu_deriv_loss(pred_mat, target_data, dt)
             @info "✓ Loss computed: $total"
             return total
@@ -287,7 +287,7 @@ function PINN_Infuser_new(
 
         # ── Optimiser ──────────────────────────────────────────────────────────
         adtype  = Optimization.AutoZygote()
-        optf    = Optimization.OptimizationFunction((x, _) -> loss(x), adtype)
+        optf    = Optimization.OptimizationFunction((x, _) -> gpu_loss(x), adtype)
         optprob = Optimization.OptimizationProblem(optf, p0)
 
         losses     = Float64[]
