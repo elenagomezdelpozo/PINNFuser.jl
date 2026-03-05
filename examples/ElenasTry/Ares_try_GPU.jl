@@ -132,6 +132,7 @@ losses = data["losses"]
 nn_history = data["nn_history"]
 @info "Model loaded. Ready for inference."
 
+
 # Making PINN matrix -> pinn_pred
 tspan = (0.0, 7.0)
 tsteps = range(0.0, 7.0, length = 7 * 150)
@@ -144,7 +145,7 @@ function pinn_ode!(du, u, p, t)
 end
 
 pinn_problem = ODEProblem((du, u, p, t) -> pinn_ode!(du, u, p, t), 
-            ode_problem.u0,
+            u_f32 = Float32.(ode_problem.u0),
             tspan,
             trained_p,
         ) 
