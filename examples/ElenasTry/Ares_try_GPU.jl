@@ -117,17 +117,19 @@ trained_p, trained_st, losses, nn_history = LibInfuserNew.PINN_Infuser_new(
 #Saving everything for later
 trained_p_cpu = cpu(trained_p)
 trained_st_cpu = Lux.cpu(trained_st)
-jldsave("trained_pinn_model.jld2"; 
+jldsave("trained_pinn_model_GPU_4.jld2"; 
         trained_p = trained_p_cpu, 
         trained_st = trained_st_cpu, 
-        losses = losses)
-@info "Model saved successfully to trained_pinn_model.jld2"
 
-#USING THE TRAINED MODEL
-data = load("trained_pinn_model.jld2")
+        losses = losses,
+        nn_history = nn_history,
+        )
+@info "Model saved successfully to trained_pinn_model_GPU_4.jld2"
+data = load("trained_pinn_model_GPU_4.jld2")
 trained_p = data["trained_p"]
 trained_st = data["trained_st"]
 losses = data["losses"]
+nn_history = data["nn_history"]
 @info "Model loaded. Ready for inference."
 
 # Making PINN matrix -> pinn_pred
