@@ -147,7 +147,7 @@ function PINN_Infuser_new(
             pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
             L_data = cpu_data_loss(pred_norm, data_norm, data_vars)
             L_phy = cpu_physics_loss(pred, p_NN, physics_vars)        
-            return L_data + L_phy
+            return L_data 
         end
 
         adtype = Optimization.AutoForwardDiff()
@@ -161,15 +161,14 @@ function PINN_Infuser_new(
             pred_mat = hcat(pred.u...)'
             pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
             l_data = cpu_data_loss(pred_norm, data_norm, data_vars)
-            l_phy = cpu_physics_loss(pred, state, physics_vars)
+            # l_phy = cpu_physics_loss(pred, state, physics_vars)
             nn_contrib = cpu_compute_nn_contributions(pred, state)
-            push!(losses, l_data + l_phy)
+            push!(losses, l_data)
                 push!(nn_history, nn_contrib) 
                 println(
                 "Iter $(length(losses)) | " *
-                "Total: $(round(l_data + l_phy, sigdigits=5)) | " *
-                "Data: $(round(l_data, sigdigits=5)) | " *
-                "Physics: $(round(l_phy, sigdigits=5)) | " 
+                "Total: $(round(l_data, sigdigits=5)) | " *
+                "Data: $(round(l_data, sigdigits=5)) | " 
             )
             if early_stopping &&
                 length(losses) > 50 &&
@@ -279,7 +278,7 @@ function PINN_Infuser_new(
             sol      = gpu_predict(p)
             pred_mat = hcat(sol.u...)'
             dt       = Float64(training_steps.step)  
-            total = gpu_data_loss(pred_mat) + gpu_deriv_loss(pred_mat, target_data, dt)
+            total = gpu_data_loss(pred_mat) # + gpu_deriv_loss(pred_mat, target_data, dt)
             @info "✓ Loss computed: $total"
             return total
         end
@@ -298,8 +297,9 @@ function PINN_Infuser_new(
             sol      = gpu_predict(state)           # was state.u
             pm       = Array(hcat(sol.u...)')
             L_data   = gpu_data_loss(pm)
-            L_deriv   = gpu_deriv_loss(pm, target_data, dt)
-            total    = L_data + L_deriv
+            #dt       = Float64(training_steps.step)  
+            #L_deriv   = gpu_deriv_loss(pm, target_data, dt)
+            total    = L_data # + L_deriv
             push!(losses, total)
 
             p_dev   = use_gpu ? gdev(state) : state   # was state.u
@@ -313,7 +313,7 @@ function PINN_Infuser_new(
             end
             push!(nn_history, contrib ./ size(pm, 1))
 
-            @printf("Iter %4d | Total: %.5e | Data: %.5e | Deriv: %.5e\n ", length(losses), total, L_data, L_deriv)
+            @printf("Iter %4d | Total: %.5e | Data: %.5e\n ", length(losses), total, L_data)
 
             if plot_every > 0 && length(losses) % plot_every == 0
                 t    = sol.t

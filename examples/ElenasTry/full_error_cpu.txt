@@ -1,3 +1,5 @@
 WARNING: Method definition setup(Optimisers.AbstractRule, ComponentArrays.ComponentArray{T, N, A, Axes} where Axes<:Tuple{Vararg{ComponentArrays.AbstractAxis{IdxMap} where IdxMap}} where A<:AbstractArray{T, N} where N where T) in module ComponentArraysOptimisersExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ComponentArrays/fwmmC/ext/ComponentArraysOptimisersExt.jl:7 overwritten in module LuxComponentArraysExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/5xfGO/ext/LuxComponentArraysExt.jl:19.
 ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
-Iter 1 | Total: 205.81 | Data: 205.81 | Physics: 3.6862e-29 | 
+Iter 1 | Total: 205.81 | Data: 205.81 | 
+Iter 2 | Total: 205.78 | Data: 205.78 | 
+Iter 3 | Total: 205.77 | Data: 205.77 | 
