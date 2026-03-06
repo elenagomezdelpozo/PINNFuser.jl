@@ -2,7 +2,8 @@ module PINNInfuser_new
 
 __precompile__(false)   # fixes the rrule/ChainRules conflict
 
-using Lux, LuxCUDA, CUDA
+# using LuxCUDA, CUDA
+using Lux
 using StableRNGs, ComponentArrays, LinearAlgebra
 using Optimization, OptimizationOptimisers
 using SciMLBase, SciMLSensitivity
@@ -13,11 +14,9 @@ using Plots, Zygote, Statistics
 
 export PINN_Infuser_new
 
-# ── Device setup (replaces deprecated Lux.gpu) ────────────────────────────
-# gdev/cdev are callable objects: gdev(x) moves x to GPU, cdev(x) to CPU
-const gdev = gpu_device()   # LuxDeviceUtils GPU device
-const cdev = cpu_device()   # LuxDeviceUtils CPU device
-_gpu_available() = CUDA.functional() 
+#const gdev = gpu_device()   # LuxDeviceUtils GPU device
+#const cdev = cpu_device()   # LuxDeviceUtils CPU device
+#_gpu_available() = CUDA.functional() 
 
 """
 
@@ -118,7 +117,7 @@ function PINN_Infuser_new(
                 nn_outputs_over_time = [
                     nn(u_mat[ti, :], p_NN, st)[1][k] for ti in 1:length(t)
                 ]
-                nn_contrib[i] = nn_output_weight * sum(nn_outputs_over_time)
+                nn_contrib[k] = nn_output_weight * sum(nn_outputs_over_time)
             end
             return nn_contrib
         end
@@ -126,7 +125,7 @@ function PINN_Infuser_new(
         function cpu_data_loss(pred_norm, data_norm, data_vars)
             return data_weight * sum(mean(abs2, pred_norm[:, j] .- data_norm[:, j]) for j in data_vars)
         end
-        
+
         function cpu_physics_loss(pred, p_NN, physics_vars)
             pred_mat = hcat(pred.u...)'
             l = 0.0
@@ -147,7 +146,7 @@ function PINN_Infuser_new(
             pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
             L_data = cpu_data_loss(pred_norm, data_norm, data_vars)
             L_phy = cpu_physics_loss(pred, p_NN, physics_vars)        
-            return L_data 
+            return L_data + L_phy
         end
 
         adtype = Optimization.AutoForwardDiff()
@@ -157,18 +156,19 @@ function PINN_Infuser_new(
         nn_history = Vector{Vector{Float64}}()
 
         callback = function (state, l)
-            pred = cpu_predict(state)
+            pred = cpu_predict(state.u)
             pred_mat = hcat(pred.u...)'
             pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
             l_data = cpu_data_loss(pred_norm, data_norm, data_vars)
-            # l_phy = cpu_physics_loss(pred, state, physics_vars)
-            nn_contrib = cpu_compute_nn_contributions(pred, state)
-            push!(losses, l_data)
+            l_phy = cpu_physics_loss(pred, state.u, physics_vars)
+            nn_contrib = cpu_compute_nn_contributions(pred, state.u)
+            push!(losses, l_data + l_phy)
                 push!(nn_history, nn_contrib) 
                 println(
                 "Iter $(length(losses)) | " *
-                "Total: $(round(l_data, sigdigits=5)) | " *
-                "Data: $(round(l_data, sigdigits=5)) | " 
+                "Total: $(round(l_data + l_phy, sigdigits=5)) | " *
+                "Data: $(round(l_data, sigdigits=5)) | " *
+                "Physics: $(round(l_phy, sigdigits=5))" 
             )
             if early_stopping &&
                 length(losses) > 50 &&
@@ -277,7 +277,6 @@ function PINN_Infuser_new(
         function gpu_loss(p)
             sol      = gpu_predict(p)
             pred_mat = hcat(sol.u...)'
-            dt       = Float64(training_steps.step)  
             total = gpu_data_loss(pred_mat) # + gpu_deriv_loss(pred_mat, target_data, dt)
             @info "✓ Loss computed: $total"
             return total
