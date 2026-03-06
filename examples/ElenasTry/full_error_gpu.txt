@@ -1,50 +1,108 @@
 WARNING: Method definition setup(Optimisers.AbstractRule, ComponentArrays.ComponentArray{T, N, A, Axes} where Axes<:Tuple{Vararg{ComponentArrays.AbstractAxis{IdxMap} where IdxMap}} where A<:AbstractArray{T, N} where N where T) in module ComponentArraysOptimisersExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ComponentArrays/fwmmC/ext/ComponentArraysOptimisersExt.jl:7 overwritten in module LuxComponentArraysExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/5xfGO/ext/LuxComponentArraysExt.jl:19.
 ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
-┌ Warning: LuxCUDA is loaded but the CUDA GPU is not functional.
-└ @ LuxCUDA ~/.julia/packages/LuxCUDA/QvUoj/src/LuxCUDA.jl:20
-┌ Warning: No functional GPU backend found! Defaulting to CPU.
-│ 
-│ 1. If no GPU is available, nothing needs to be done.
-│ 2. If GPU is available, load the corresponding trigger package.
-│     a. LuxCUDA.jl for NVIDIA CUDA Support!
-│     b. LuxAMDGPU.jl for AMD GPU ROCM Support!
-│     c. Metal.jl for Apple Metal GPU Support!
-└ @ LuxDeviceUtils ~/.julia/packages/LuxDeviceUtils/i8Uad/src/LuxDeviceUtils.jl:153
-[ Info: GPU available: false  (CUDA=false)
-[ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639533600894242
-[ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639533600894245
-[ Info: ✓ ODE solved.
-Iter    1 | Total: 5.63953e+00 | Data: 2.05801e+00 | Deriv: 3.58153e+00
- [ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639465167876256
-[ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639465167876263
-[ Info: ✓ ODE solved.
-Iter    2 | Total: 5.63947e+00 | Data: 2.05791e+00 | Deriv: 3.58156e+00
- [ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639269753212922
-[ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639269753212924
-[ Info: ✓ ODE solved.
-Iter    3 | Total: 5.63927e+00 | Data: 2.05762e+00 | Deriv: 3.58165e+00
- [ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639164997234985
-[ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639164997234978
-[ Info: ✓ ODE solved.
-Iter    4 | Total: 5.63916e+00 | Data: 2.05737e+00 | Deriv: 3.58180e+00
- [ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639032884234295
-[ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.639032884234288
-[ Info: ✓ ODE solved.
-Iter    5 | Total: 5.63903e+00 | Data: 2.05715e+00 | Deriv: 3.58188e+00
- [ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.638914124670037
-[ Info: ✓ ODE solved.
-[ Info: ✓ Loss computed: 5.638914124670034
-[ Info: ✓ ODE solved.
-Iter    6 | Total: 5.63891e+00 | Data: 2.05699e+00 | Deriv: 3.58193e+00
- [ Info: ✓ ODE solved.
+[ Info: GPU available: true  (CUDA=true)
+[ Info: CUDA device: Tesla V100-SXM2-32GB
+Iter    1 | Total: 2.05801e+00 | Data: 2.05801e+00
+ Iter    2 | Total: 2.05588e+00 | Data: 2.05588e+00
+ Iter    3 | Total: 2.05393e+00 | Data: 2.05393e+00
+ Iter    4 | Total: 2.05170e+00 | Data: 2.05170e+00
+ Iter    5 | Total: 2.04955e+00 | Data: 2.04955e+00
+ Iter    6 | Total: 2.04742e+00 | Data: 2.04742e+00
+ Iter    7 | Total: 2.04515e+00 | Data: 2.04515e+00
+ Iter    8 | Total: 2.04289e+00 | Data: 2.04289e+00
+ Iter    9 | Total: 2.04068e+00 | Data: 2.04068e+00
+ Iter   10 | Total: 2.03826e+00 | Data: 2.03826e+00
+ ]1337;ReportCellSizeGKS: cannot open display - headless operation mode active
+Iter   11 | Total: 2.03587e+00 | Data: 2.03587e+00
+ Iter   12 | Total: 2.03337e+00 | Data: 2.03337e+00
+ Iter   13 | Total: 2.03074e+00 | Data: 2.03074e+00
+ Iter   14 | Total: 2.02815e+00 | Data: 2.02815e+00
+ Iter   15 | Total: 2.02548e+00 | Data: 2.02548e+00
+ Iter   16 | Total: 2.02254e+00 | Data: 2.02254e+00
+ Iter   17 | Total: 2.01975e+00 | Data: 2.01975e+00
+ Iter   18 | Total: 2.01665e+00 | Data: 2.01665e+00
+ Iter   19 | Total: 2.01333e+00 | Data: 2.01333e+00
+ Iter   20 | Total: 2.01016e+00 | Data: 2.01016e+00
+ Iter   21 | Total: 2.00672e+00 | Data: 2.00672e+00
+ Iter   22 | Total: 2.00298e+00 | Data: 2.00298e+00
+ Iter   23 | Total: 1.99911e+00 | Data: 1.99911e+00
+ Iter   24 | Total: 1.99521e+00 | Data: 1.99521e+00
+ Iter   25 | Total: 1.99084e+00 | Data: 1.99084e+00
+ Iter   26 | Total: 1.98645e+00 | Data: 1.98645e+00
+ Iter   27 | Total: 1.98129e+00 | Data: 1.98129e+00
+ Iter   28 | Total: 1.97601e+00 | Data: 1.97601e+00
+ Iter   29 | Total: 1.97064e+00 | Data: 1.97064e+00
+ Iter   30 | Total: 1.96465e+00 | Data: 1.96465e+00
+ Iter   31 | Total: 1.95824e+00 | Data: 1.95824e+00
+ Iter   32 | Total: 1.95138e+00 | Data: 1.95138e+00
+ Iter   33 | Total: 1.94402e+00 | Data: 1.94402e+00
+ Iter   34 | Total: 1.93609e+00 | Data: 1.93609e+00
+ Iter   35 | Total: 1.92756e+00 | Data: 1.92756e+00
+ Iter   36 | Total: 1.91843e+00 | Data: 1.91843e+00
+ Iter   37 | Total: 1.90846e+00 | Data: 1.90846e+00
+ Iter   38 | Total: 1.89777e+00 | Data: 1.89777e+00
+ Iter   39 | Total: 1.88646e+00 | Data: 1.88646e+00
+ Iter   40 | Total: 1.87407e+00 | Data: 1.87407e+00
+ Iter   41 | Total: 1.86102e+00 | Data: 1.86102e+00
+ Iter   42 | Total: 1.84684e+00 | Data: 1.84684e+00
+ Iter   43 | Total: 1.83178e+00 | Data: 1.83178e+00
+ Iter   44 | Total: 1.81554e+00 | Data: 1.81554e+00
+ Iter   45 | Total: 1.79836e+00 | Data: 1.79836e+00
+ Iter   46 | Total: 1.78006e+00 | Data: 1.78006e+00
+ Iter   47 | Total: 1.76019e+00 | Data: 1.76019e+00
+ Iter   48 | Total: 1.73945e+00 | Data: 1.73945e+00
+ Iter   49 | Total: 1.71754e+00 | Data: 1.71754e+00
+ Iter   50 | Total: 1.69393e+00 | Data: 1.69393e+00
+ Iter   51 | Total: 1.66872e+00 | Data: 1.66872e+00
+ Iter   52 | Total: 1.64196e+00 | Data: 1.64196e+00
+ Iter   53 | Total: 1.61329e+00 | Data: 1.61329e+00
+ Iter   54 | Total: 1.58282e+00 | Data: 1.58282e+00
+ Iter   55 | Total: 1.54995e+00 | Data: 1.54995e+00
+ Iter   56 | Total: 1.51464e+00 | Data: 1.51464e+00
+ Iter   57 | Total: 1.47669e+00 | Data: 1.47669e+00
+ Iter   58 | Total: 1.43625e+00 | Data: 1.43625e+00
+ Iter   59 | Total: 1.39349e+00 | Data: 1.39349e+00
+ Iter   60 | Total: 1.34844e+00 | Data: 1.34844e+00
+ Iter   61 | Total: 1.30180e+00 | Data: 1.30180e+00
+ Iter   62 | Total: 1.25436e+00 | Data: 1.25436e+00
+ Iter   63 | Total: 1.20701e+00 | Data: 1.20701e+00
+ Iter   64 | Total: 1.16039e+00 | Data: 1.16039e+00
+ Iter   65 | Total: 1.11499e+00 | Data: 1.11499e+00
+ Iter   66 | Total: 1.07155e+00 | Data: 1.07155e+00
+ Iter   67 | Total: 1.03006e+00 | Data: 1.03006e+00
+ Iter   68 | Total: 9.90420e-01 | Data: 9.90420e-01
+ Iter   69 | Total: 9.52022e-01 | Data: 9.52022e-01
+ Iter   70 | Total: 9.14548e-01 | Data: 9.14548e-01
+ Iter   71 | Total: 8.77180e-01 | Data: 8.77180e-01
+ Iter   72 | Total: 8.40033e-01 | Data: 8.40033e-01
+ Iter   73 | Total: 8.02991e-01 | Data: 8.02991e-01
+ Iter   74 | Total: 7.66658e-01 | Data: 7.66658e-01
+ Iter   75 | Total: 7.31680e-01 | Data: 7.31680e-01
+ Iter   76 | Total: 6.98650e-01 | Data: 6.98650e-01
+ Iter   77 | Total: 6.67980e-01 | Data: 6.67980e-01
+ Iter   78 | Total: 6.40513e-01 | Data: 6.40513e-01
+ Iter   79 | Total: 6.16605e-01 | Data: 6.16605e-01
+ Iter   80 | Total: 5.96446e-01 | Data: 5.96446e-01
+ Iter   81 | Total: 5.80090e-01 | Data: 5.80090e-01
+ Iter   82 | Total: 5.67535e-01 | Data: 5.67535e-01
+ Iter   83 | Total: 5.57873e-01 | Data: 5.57873e-01
+ Iter   84 | Total: 5.50284e-01 | Data: 5.50284e-01
+ Iter   85 | Total: 5.43999e-01 | Data: 5.43999e-01
+ Iter   86 | Total: 5.38481e-01 | Data: 5.38481e-01
+ Iter   87 | Total: 5.33384e-01 | Data: 5.33384e-01
+ Iter   88 | Total: 5.28711e-01 | Data: 5.28711e-01
+ Iter   89 | Total: 5.24686e-01 | Data: 5.24686e-01
+ Iter   90 | Total: 5.21661e-01 | Data: 5.21661e-01
+ Iter   91 | Total: 5.19786e-01 | Data: 5.19786e-01
+ Iter   92 | Total: 5.18873e-01 | Data: 5.18873e-01
+ Iter   93 | Total: 5.18827e-01 | Data: 5.18827e-01
+ Iter   94 | Total: 5.19307e-01 | Data: 5.19307e-01
+ Iter   95 | Total: 5.20117e-01 | Data: 5.20117e-01
+ Iter   96 | Total: 5.20744e-01 | Data: 5.20744e-01
+ Iter   97 | Total: 5.21232e-01 | Data: 5.21232e-01
+ Iter   98 | Total: 5.21474e-01 | Data: 5.21474e-01
+ Iter   99 | Total: 5.21475e-01 | Data: 5.21475e-01
+ Iter  100 | Total: 5.21464e-01 | Data: 5.21464e-01
+ Iter  101 | Total: 5.21647e-01 | Data: 5.21647e-01
+ [ Info: Early stopping at iter 101
+[ Info: Model saved successfully to trained_pinn_model_GPU.jld2

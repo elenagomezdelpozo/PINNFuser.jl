@@ -1,5 +1,106 @@
 WARNING: Method definition setup(Optimisers.AbstractRule, ComponentArrays.ComponentArray{T, N, A, Axes} where Axes<:Tuple{Vararg{ComponentArrays.AbstractAxis{IdxMap} where IdxMap}} where A<:AbstractArray{T, N} where N where T) in module ComponentArraysOptimisersExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ComponentArrays/fwmmC/ext/ComponentArraysOptimisersExt.jl:7 overwritten in module LuxComponentArraysExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/5xfGO/ext/LuxComponentArraysExt.jl:19.
 ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
-Iter 1 | Total: 205.81 | Data: 205.81 | 
-Iter 2 | Total: 205.78 | Data: 205.78 | 
-Iter 3 | Total: 205.77 | Data: 205.77 | 
+┌ Warning: LuxCUDA is loaded but the CUDA GPU is not functional.
+└ @ LuxCUDA ~/.julia/packages/LuxCUDA/QvUoj/src/LuxCUDA.jl:20
+┌ Warning: No functional GPU backend found! Defaulting to CPU.
+│ 
+│ 1. If no GPU is available, nothing needs to be done.
+│ 2. If GPU is available, load the corresponding trigger package.
+│     a. LuxCUDA.jl for NVIDIA CUDA Support!
+│     b. LuxAMDGPU.jl for AMD GPU ROCM Support!
+│     c. Metal.jl for Apple Metal GPU Support!
+└ @ LuxDeviceUtils ~/.julia/packages/LuxDeviceUtils/i8Uad/src/LuxDeviceUtils.jl:153
+Iter 1 | Total: 2.0581 | Data: 2.0581 | 
+Iter 2 | Total: 2.0559 | Data: 2.0559 | 
+Iter 3 | Total: 2.0539 | Data: 2.0539 | 
+Iter 4 | Total: 2.0518 | Data: 2.0518 | 
+Iter 5 | Total: 2.0496 | Data: 2.0496 | 
+Iter 6 | Total: 2.0475 | Data: 2.0475 | 
+Iter 7 | Total: 2.0451 | Data: 2.0451 | 
+Iter 8 | Total: 2.0428 | Data: 2.0428 | 
+Iter 9 | Total: 2.0406 | Data: 2.0406 | 
+Iter 10 | Total: 2.0382 | Data: 2.0382 | 
+Iter 11 | Total: 2.0359 | Data: 2.0359 | 
+Iter 12 | Total: 2.0332 | Data: 2.0332 | 
+Iter 13 | Total: 2.0308 | Data: 2.0308 | 
+Iter 14 | Total: 2.0281 | Data: 2.0281 | 
+Iter 15 | Total: 2.0255 | Data: 2.0255 | 
+Iter 16 | Total: 2.0225 | Data: 2.0225 | 
+Iter 17 | Total: 2.0195 | Data: 2.0195 | 
+Iter 18 | Total: 2.0167 | Data: 2.0167 | 
+Iter 19 | Total: 2.0134 | Data: 2.0134 | 
+Iter 20 | Total: 2.0102 | Data: 2.0102 | 
+Iter 21 | Total: 2.0067 | Data: 2.0067 | 
+Iter 22 | Total: 2.003 | Data: 2.003 | 
+Iter 23 | Total: 1.9993 | Data: 1.9993 | 
+Iter 24 | Total: 1.9951 | Data: 1.9951 | 
+Iter 25 | Total: 1.9909 | Data: 1.9909 | 
+Iter 26 | Total: 1.9863 | Data: 1.9863 | 
+Iter 27 | Total: 1.9814 | Data: 1.9814 | 
+Iter 28 | Total: 1.9761 | Data: 1.9761 | 
+Iter 29 | Total: 1.9709 | Data: 1.9709 | 
+Iter 30 | Total: 1.9647 | Data: 1.9647 | 
+Iter 31 | Total: 1.9583 | Data: 1.9583 | 
+Iter 32 | Total: 1.9514 | Data: 1.9514 | 
+Iter 33 | Total: 1.9441 | Data: 1.9441 | 
+Iter 34 | Total: 1.936 | Data: 1.936 | 
+Iter 35 | Total: 1.9275 | Data: 1.9275 | 
+Iter 36 | Total: 1.9184 | Data: 1.9184 | 
+Iter 37 | Total: 1.9085 | Data: 1.9085 | 
+Iter 38 | Total: 1.8979 | Data: 1.8979 | 
+Iter 39 | Total: 1.8865 | Data: 1.8865 | 
+Iter 40 | Total: 1.8742 | Data: 1.8742 | 
+Iter 41 | Total: 1.861 | Data: 1.861 | 
+Iter 42 | Total: 1.847 | Data: 1.847 | 
+Iter 43 | Total: 1.832 | Data: 1.832 | 
+Iter 44 | Total: 1.8157 | Data: 1.8157 | 
+Iter 45 | Total: 1.7986 | Data: 1.7986 | 
+Iter 46 | Total: 1.7802 | Data: 1.7802 | 
+Iter 47 | Total: 1.7607 | Data: 1.7607 | 
+Iter 48 | Total: 1.7398 | Data: 1.7398 | 
+Iter 49 | Total: 1.7178 | Data: 1.7178 | 
+Iter 50 | Total: 1.6941 | Data: 1.6941 | 
+Iter 51 | Total: 1.6691 | Data: 1.6691 | 
+Iter 52 | Total: 1.6424 | Data: 1.6424 | 
+Iter 53 | Total: 1.6139 | Data: 1.6139 | 
+Iter 54 | Total: 1.5835 | Data: 1.5835 | 
+Iter 55 | Total: 1.5507 | Data: 1.5507 | 
+Iter 56 | Total: 1.5153 | Data: 1.5153 | 
+Iter 57 | Total: 1.4777 | Data: 1.4777 | 
+Iter 58 | Total: 1.4373 | Data: 1.4373 | 
+Iter 59 | Total: 1.3943 | Data: 1.3943 | 
+Iter 60 | Total: 1.3491 | Data: 1.3491 | 
+Iter 61 | Total: 1.3023 | Data: 1.3023 | 
+Iter 62 | Total: 1.2547 | Data: 1.2547 | 
+Iter 63 | Total: 1.2067 | Data: 1.2067 | 
+Iter 64 | Total: 1.1597 | Data: 1.1597 | 
+Iter 65 | Total: 1.1142 | Data: 1.1142 | 
+Iter 66 | Total: 1.0705 | Data: 1.0705 | 
+Iter 67 | Total: 1.0294 | Data: 1.0294 | 
+Iter 68 | Total: 0.99058 | Data: 0.99058 | 
+Iter 69 | Total: 0.95382 | Data: 0.95382 | 
+Iter 70 | Total: 0.91866 | Data: 0.91866 | 
+Iter 71 | Total: 0.88433 | Data: 0.88433 | 
+Iter 72 | Total: 0.84999 | Data: 0.84999 | 
+Iter 73 | Total: 0.81552 | Data: 0.81552 | 
+Iter 74 | Total: 0.78088 | Data: 0.78088 | 
+Iter 75 | Total: 0.74675 | Data: 0.74675 | 
+Iter 76 | Total: 0.71382 | Data: 0.71382 | 
+Iter 77 | Total: 0.68273 | Data: 0.68273 | 
+Iter 78 | Total: 0.65424 | Data: 0.65424 | 
+Iter 79 | Total: 0.62865 | Data: 0.62865 | 
+Iter 80 | Total: 0.60682 | Data: 0.60682 | 
+Iter 81 | Total: 0.58883 | Data: 0.58883 | 
+Iter 82 | Total: 0.57473 | Data: 0.57473 | 
+Iter 83 | Total: 0.56462 | Data: 0.56462 | 
+Iter 84 | Total: 0.55833 | Data: 0.55833 | 
+Iter 85 | Total: 0.55504 | Data: 0.55504 | 
+Iter 86 | Total: 0.55428 | Data: 0.55428 | 
+Iter 87 | Total: 0.55558 | Data: 0.55558 | 
+Iter 88 | Total: 0.55856 | Data: 0.55856 | 
+Iter 89 | Total: 0.56327 | Data: 0.56327 | 
+Iter 90 | Total: 0.56939 | Data: 0.56939 | 
+Iter 91 | Total: 0.57695 | Data: 0.57695 | 
+Iter 92 | Total: 0.58573 | Data: 0.58573 | 
+Early stopping at iteration 92 with loss 0.5857293620689227
+[ Info: Model saved successfully to trained_pinn_model_CPU.jld2

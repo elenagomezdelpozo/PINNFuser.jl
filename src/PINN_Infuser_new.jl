@@ -258,7 +258,6 @@ function PINN_Infuser_new(
                 abstol   = abstol,
                 sensealg = InterpolatingAdjoint(autojacvec=ZygoteVJP()),
             )
-            @info "✓ ODE solved."
             return sol
         end
 
@@ -278,7 +277,6 @@ function PINN_Infuser_new(
             sol      = gpu_predict(p)
             pred_mat = hcat(sol.u...)'
             total = gpu_data_loss(pred_mat) # + gpu_deriv_loss(pred_mat, target_data, dt)
-            @info "✓ Loss computed: $total"
             return total
         end
         
