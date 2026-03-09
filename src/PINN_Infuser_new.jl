@@ -60,6 +60,7 @@ function PINN_Infuser_new(
     data_weight::Float64 = 1.0,
     deriv_weight::Float64 = 1.0,
     physics_weight::Float64 = 1.0,
+    zm_weight::Float64 = 1.0,
     optimizer = ADAM,
     learning_rate::Float64 = 1e-3,
     reltol::Float64 = 1e-6,
@@ -70,10 +71,11 @@ function PINN_Infuser_new(
     early_stop_warmup::Int = 50,
     early_stop_window::Int = 10,
     rng::StableRNG = StableRNG(5958),
-    loss_logfile::String = "training_logs/loss_history.txt",
     nn_vars::Union{Nothing,Vector{Int}} = nothing,
     data_vars::Union{Nothing,Vector{Int}} = nothing,
     physics_vars::Union{Nothing,Vector{Int}} = nothing,
+    deriv_vars::Union{Nothing,Vector{Int}} = nothing,
+    zm_vars::Union{Nothing,Vector{Int}} = nothing,
 )::Tuple{Any,Any, Any, Any}
     if processor == "cpu"
         U_MEAN = vec(mean(target_data, dims = 1))
@@ -112,14 +114,14 @@ function PINN_Infuser_new(
         function cpu_compute_nn_contributions(sol, p_NN)
             t = sol.t
             u_mat = hcat(sol.u...)'  # (time × variables)
-            nn_contrib = zeros(length(nn_vars))
+            # Return (time × nn_vars) matrix instead of summing
+            nn_contrib = zeros(length(t), length(nn_vars))
             for (k, i) in enumerate(nn_vars)
-                nn_outputs_over_time = [
-                    nn(u_mat[ti, :], p_NN, st)[1][k] for ti in 1:length(t)
-                ]
-                nn_contrib[k] = nn_output_weight * sum(nn_outputs_over_time)
+                for ti in 1:length(t)
+                    nn_contrib[ti, k] = nn_output_weight * nn(u_mat[ti, :], p_NN, st)[1][k]
+                end
             end
-            return nn_contrib
+            return nn_contrib  # (time × nn_vars)
         end
 
         function cpu_data_loss(pred_norm, data_norm, data_vars)
@@ -140,20 +142,46 @@ function PINN_Infuser_new(
             return physics_weight * (l / length(training_steps))
         end
 
+        function cpu_zero_mean_loss(sol, p_NN, zm_vars)
+            t = sol.t
+            u_mat = hcat(sol.u...)'
+            l = 0.0
+            for (k, i) in enumerate(nn_vars)
+                if i in zm_vars
+                    nn_over_time = [nn(u_mat[ti, :], p_NN, st)[1][k] for ti in 1:length(t)]
+                    l += abs2(sum(nn_over_time))  # sum should be zero
+                end
+            end
+            return zm_weight * l
+        end
+
+        function cpu_firstderiv_loss(pred_mat, target_data, firstderiv_vars)
+            dt = training_steps[2] - training_steps[1]
+            l = 0.0
+            for j in firstderiv_vars
+                dpred   = diff(pred_mat[:, j],        dims=1) ./ dt
+                dtarget = diff(target_data[:, j],     dims=1) ./ dt
+                l += mean(abs2, dpred .- dtarget)
+            end
+            return deriv_weight * l
+        end
+
         function cpu_loss(p_NN)
             pred = cpu_predict(p_NN)
             pred_mat = hcat(pred.u...)'
             pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
             L_data = cpu_data_loss(pred_norm, data_norm, data_vars)
-            L_phy = cpu_physics_loss(pred, p_NN, physics_vars)        
-            return L_data + L_phy
+            L_phy = cpu_physics_loss(pred, p_NN, physics_vars)   
+            L_zm = cpu_zero_mean_loss(pred, p_NN, zm_vars)
+            L_deriv = cpu_firstderiv_loss(pred_mat, target_data, deriv_vars)     
+            return L_data + L_phy + L_zm + L_deriv
         end
 
         adtype = Optimization.AutoForwardDiff()
         optf = Optimization.OptimizationFunction((x, p) -> cpu_loss(x), adtype)
         optprob = Optimization.OptimizationProblem(optf, p_NN)
         losses = Float64[]
-        nn_history = Vector{Vector{Float64}}()
+        nn_history = Vector{Matrix{Float64}}()
 
         callback = function (state, l)
             pred = cpu_predict(state.u)
@@ -161,14 +189,17 @@ function PINN_Infuser_new(
             pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
             l_data = cpu_data_loss(pred_norm, data_norm, data_vars)
             l_phy = cpu_physics_loss(pred, state.u, physics_vars)
-            nn_contrib = cpu_compute_nn_contributions(pred, state.u)
-            push!(losses, l_data + l_phy)
-                push!(nn_history, nn_contrib) 
+            l_zm = cpu_zero_mean_loss(pred, state.u, zm_vars)
+            l_deriv = cpu_firstderiv_loss(pred_mat, target_data, deriv_vars)
+            push!(losses, l_data + l_phy + l_zm + l_deriv)
+            push!(nn_history, cpu_compute_nn_contributions(pred, state.u))
                 println(
                 "Iter $(length(losses)) | " *
-                "Total: $(round(l_data + l_phy, sigdigits=5)) | " *
+                "Total: $(round(l_data + l_phy + l_zm + l_deriv, sigdigits=5)) | " *
                 "Data: $(round(l_data, sigdigits=5)) | " *
-                "Physics: $(round(l_phy, sigdigits=5))" 
+                "Physics: $(round(l_phy, sigdigits=5)) | " *
+                "Zero Mean: $(round(l_zm, sigdigits=5)) | " *
+                "Deriv: $(round(l_deriv, sigdigits=5)) | "
             )
             if early_stopping &&
                 length(losses) > 50 &&
@@ -186,17 +217,6 @@ function PINN_Infuser_new(
             callback = callback,
             maxiters = iters,
         )
-
-        folder = dirname(loss_logfile)
-        if folder != "" && !isdir(folder)
-            println("Creating directory for training logs: $folder")
-            mkpath(folder)
-        end
-        open(loss_logfile, "w") do io
-            for (i, L) in enumerate(losses)
-                @printf(io, "%d %.12f\n", i, L)
-            end
-        end
 
         return (trained_params.u, st, losses, nn_history)    
 
@@ -331,12 +351,6 @@ function PINN_Infuser_new(
 
         trained = Optimization.solve(optprob, optimizer(learning_rate),
                                     callback=callback, maxiters=iters)
-
-        folder = dirname(loss_logfile)
-        !isempty(folder) && !isdir(folder) && mkpath(folder)
-        open(loss_logfile, "w") do io
-            for (i,L) in enumerate(losses); @printf(io,"%d %.12f\n",i,L); end
-        end
 
         return (trained.u, st_cpu, losses, nn_history)
     else

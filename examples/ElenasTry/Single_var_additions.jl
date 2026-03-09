@@ -101,7 +101,7 @@ NN = Lux.Chain(
 include("../../src/lib_new.jl")
 using .LibInfuserNew
 
-for i in 1:6
+for i in 1:10
     trained_p, trained_st, losses, nn_history = LibInfuserNew.PINN_Infuser_new(
         ode_problem,
         ode_params,
@@ -111,21 +111,25 @@ for i in 1:6
         processor = "cpu",
         nn_output_weight = 1.0,
         data_weight = 1e-2,
-        physics_weight = 1.0,
+        deriv_weight = 0.0,
+        physics_weight = 0.0,   
+        zm_weight = 1.0,
         learning_rate = 1e-4,
         iters = 200,
         nn_vars = [i],   
         data_vars = [1,2,3,4,5,6],
-        physics_vars = [5,6,7,8,9,10]
+        physics_vars = [5,6,7,8,9,10],
+        deriv_vars = [1,3,5,7,9],
+        zm_vars = [i],
     )
     #Saving everything for later
     #trained_p_cpu = cpu(trained_p)
     #trained_st_cpu = Lux.cpu(trained_st)
-    jldsave("trained_pinn_model_phy_$(i).jld2"; 
+    jldsave("trained_pinn_model_zm_$(i).jld2"; 
             trained_p = trained_p, 
             trained_st = trained_st, 
             losses = losses,
             nn_history = nn_history,
             )
-    @info "Model saved successfully to trained_pinn_model_phy_$(i).jld2"
+    @info "Model saved successfully to trained_pinn_model_zm_$(i).jld2"
 end
