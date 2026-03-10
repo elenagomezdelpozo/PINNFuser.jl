@@ -98,8 +98,8 @@ NN = Lux.Chain(
     Lux.Dense(10, 6),
 )
 # ── Load model ────────────────────────────────────────────────────────────
-for i in 1:6
-    data = load("trained_pinn_model_deriv_$(i).jld2")
+for i in 1:10
+    data = load("Trainings/trained_pinn_model_zm_$(i).jld2")
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
@@ -205,7 +205,7 @@ for i in 1:6
         title = "Equation $(i)",
         size = (900, 800)
     )
-    savefig(p1, "Figures/DataDeriv_var$(i).png")
+    savefig(p1, "Figures/DataZM_var$(i).png")
 
     # PLOTING LOSS
     n_epochs = length(losses)
@@ -220,29 +220,18 @@ for i in 1:6
         markersize = 3,
         legend = false)
     
-    savefig(p2, "Figures/DataDeriv_var$(i)_loss.png")
+    savefig(p2, "Figures/DataZM_var$(i)_loss.png")
 
     # PLOTTING NN HISTORY
-    tsteps = range(6.0, 7.0, length = 150)
-    plots_nn = [
-        begin
-            p = plot(
-                tsteps,
-                nn_history[:, i],
-                label = "NN History",
-                xlabel = "time",
-                ylabel = labelss[i],
-                lw = 2
-            )
-            p
-        end
-        for i in 1:1
-    ]
+    tsteps = range(0.0, 1.0, length = 150)
     p3 = plot(
-        plots_nn...,
+        tsteps,
+        nn_history[end],
+        label = "NN History",
+        xlabel = "time",
+        ylabel = labelss[i],
+        lw = 2,
         title = "NN History for Equation $(i)",
-        layout = (3, 2),
-        size = (900, 800)
     )
-    savefig(p3, "Figures/DataDeriv_var$(i)_nn.png")
+    savefig(p3, "Figures/DataZM_var$(i)_nn.png")
 end

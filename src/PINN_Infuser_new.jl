@@ -61,6 +61,7 @@ function PINN_Infuser_new(
     deriv_weight::Float64 = 1.0,
     physics_weight::Float64 = 1.0,
     zm_weight::Float64 = 1.0,
+    neg_weight::Float64 = 1.0,
     optimizer = ADAM,
     learning_rate::Float64 = 1e-3,
     reltol::Float64 = 1e-6,
@@ -76,6 +77,7 @@ function PINN_Infuser_new(
     physics_vars::Union{Nothing,Vector{Int}} = nothing,
     deriv_vars::Union{Nothing,Vector{Int}} = nothing,
     zm_vars::Union{Nothing,Vector{Int}} = nothing,
+    neg_vars::Union{Nothing,Vector{Int}} = nothing,
 )::Tuple{Any,Any, Any, Any}
     if processor == "cpu"
         U_MEAN = vec(mean(target_data, dims = 1))
@@ -155,6 +157,14 @@ function PINN_Infuser_new(
             return zm_weight * l
         end
 
+        function cpu_negativity_loss(pred_mat, neg_vars)
+            l = 0.0
+            for j in neg_vars
+                l += sum(abs2, min.(pred_mat[:, j], 0.0))  # only penalizes negative values
+            end
+            return neg_weight * l
+        end 
+
         function cpu_firstderiv_loss(pred_mat, target_data, firstderiv_vars)
             dt = training_steps[2] - training_steps[1]
             l = 0.0
@@ -173,8 +183,9 @@ function PINN_Infuser_new(
             L_data = cpu_data_loss(pred_norm, data_norm, data_vars)
             L_phy = cpu_physics_loss(pred, p_NN, physics_vars)   
             L_zm = cpu_zero_mean_loss(pred, p_NN, zm_vars)
-            L_deriv = cpu_firstderiv_loss(pred_mat, target_data, deriv_vars)     
-            return L_data + L_phy + L_zm + L_deriv
+            L_deriv = cpu_firstderiv_loss(pred_mat, target_data, deriv_vars)   
+            L_neg = cpu_negativity_loss(pred_mat, neg_vars)  
+            return L_data + L_phy + L_zm + L_deriv + L_neg
         end
 
         adtype = Optimization.AutoForwardDiff()
@@ -191,15 +202,17 @@ function PINN_Infuser_new(
             l_phy = cpu_physics_loss(pred, state.u, physics_vars)
             l_zm = cpu_zero_mean_loss(pred, state.u, zm_vars)
             l_deriv = cpu_firstderiv_loss(pred_mat, target_data, deriv_vars)
-            push!(losses, l_data + l_phy + l_zm + l_deriv)
+            l_neg = cpu_negativity_loss(pred_mat, neg_vars)
+            push!(losses, l_data + l_phy + l_zm + l_deriv + l_neg)
             push!(nn_history, cpu_compute_nn_contributions(pred, state.u))
                 println(
                 "Iter $(length(losses)) | " *
-                "Total: $(round(l_data + l_phy + l_zm + l_deriv, sigdigits=5)) | " *
+                "Total: $(round(l_data + l_phy + l_zm + l_deriv + l_neg, sigdigits=5)) | " *
                 "Data: $(round(l_data, sigdigits=5)) | " *
                 "Physics: $(round(l_phy, sigdigits=5)) | " *
                 "Zero Mean: $(round(l_zm, sigdigits=5)) | " *
-                "Deriv: $(round(l_deriv, sigdigits=5)) | "
+                "Deriv: $(round(l_deriv, sigdigits=5)) | " *
+                "Negativity: $(round(l_neg, sigdigits=5))"
             )
             if early_stopping &&
                 length(losses) > 50 &&
