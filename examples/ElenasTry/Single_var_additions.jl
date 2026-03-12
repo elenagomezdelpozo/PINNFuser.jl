@@ -100,7 +100,7 @@ NN = Lux.Chain(
 
 include("../../src/lib_new.jl")
 using .LibInfuserNew
-name = "neg"
+name = "mass"
 for i in 1:10
     trained_p, trained_st, losses, nn_history = LibInfuserNew.PINN_Infuser_new(
         ode_problem,
@@ -114,16 +114,19 @@ for i in 1:10
         deriv_weight = 0.0,
         physics_weight = 0.0,   
         zm_weight = 0.0,
-        neg_weight = 10.0,
+        neg_weight = 0.0,
+        periodic_weight = 0.0,
+        mass_conservation_weight = 1.0,
         learning_rate = 1e-4,
         iters = 200,
         nn_vars = [i],   
         data_vars = [1,2,3,4,5,6],
-        physics_vars = [5,6,7,8,9,10],
+        physics_vars = [5,6],
         deriv_vars = [1,3,5,7,9],
         zm_vars = [i],
-        neg_vars = [5,6,7,8,9,10],
+        neg_vars = [5,6,7,8,9,10]
     )
+
     jldsave("Trainings/trained_pinn_model_$(name)_$(i).jld2"; 
             trained_p = trained_p, 
             trained_st = trained_st, 

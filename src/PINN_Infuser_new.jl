@@ -62,6 +62,8 @@ function PINN_Infuser_new(
     physics_weight::Float64 = 1.0,
     zm_weight::Float64 = 1.0,
     neg_weight::Float64 = 1.0,
+    periodic_weight::Float64 = 1.0,
+    mass_conservation_weight::Float64 = 1.0,
     optimizer = ADAM,
     learning_rate::Float64 = 1e-3,
     reltol::Float64 = 1e-6,
@@ -77,7 +79,7 @@ function PINN_Infuser_new(
     physics_vars::Union{Nothing,Vector{Int}} = nothing,
     deriv_vars::Union{Nothing,Vector{Int}} = nothing,
     zm_vars::Union{Nothing,Vector{Int}} = nothing,
-    neg_vars::Union{Nothing,Vector{Int}} = nothing,
+    neg_vars::Union{Nothing,Vector{Int}} = nothing
 )::Tuple{Any,Any, Any, Any}
     if processor == "cpu"
         U_MEAN = vec(mean(target_data, dims = 1))
@@ -130,18 +132,54 @@ function PINN_Infuser_new(
             return data_weight * sum(mean(abs2, pred_norm[:, j] .- data_norm[:, j]) for j in data_vars)
         end
 
-        function cpu_physics_loss(pred, p_NN, physics_vars)
-            pred_mat = hcat(pred.u...)'
-            l = 0.0
-            for (i, t) in enumerate(training_steps)
+        function cpu_physics_loss(pred_mat, training_steps, ode_params, physics_vars)
+            dt = training_steps[2] - training_steps[1]
+            n  = size(pred_mat, 1)
+            l  = zero(eltype(pred_mat))
+
+            # scale by std of each variable's derivative to normalize units
+            du_scale = vec(std(diff(pred_mat, dims=1) ./ dt, dims=1)) .+ 1e-6
+
+            for i in 2:n-1
+                t = training_steps[i]
                 u = pred_mat[i, :]
-                du = similar(u)
-                cpu_pinn_ode!(du, u, p_NN, t)
-                f_base = similar(u)
-                ode_problem.f(f_base, u, ode_params, t)
-                l += mean(abs2.(du[physics_vars] .- f_base[physics_vars]))
+
+                du_ode = zeros(eltype(u), length(u))
+                ode_problem.f(du_ode, u, ode_params, t)
+                du_num = (pred_mat[i+1, :] .- pred_mat[i-1, :]) ./ (2dt)
+
+                for j in physics_vars
+                    l += abs2((du_num[j] - du_ode[j]) / du_scale[j])  # ← normalized
+                end
             end
-            return physics_weight * (l / length(training_steps))
+
+            return physics_weight * l / (n-2)
+        end
+
+        function cpu_mass_conservation_loss(pred_mat, training_steps)
+            dt = training_steps[2] - training_steps[1]
+
+            # integrate each flow over the cycle (trapezoidal rule)
+            Qav  = pred_mat[:, 7]
+            Qmv  = pred_mat[:, 8]
+            Qs   = pred_mat[:, 9]
+            Qsv  = pred_mat[:, 10]
+
+            # total volume per cycle for each flow
+            ∫Qav  = sum((Qav[1:end-1]  .+ Qav[2:end])  ./ 2) * dt
+            ∫Qmv  = sum((Qmv[1:end-1]  .+ Qmv[2:end])  ./ 2) * dt
+            ∫Qs   = sum((Qs[1:end-1]   .+ Qs[2:end])   ./ 2) * dt
+            ∫Qsv  = sum((Qsv[1:end-1]  .+ Qsv[2:end])  ./ 2) * dt
+
+            # all four must carry the same total volume around the loop
+            mean_flow = (∫Qav + ∫Qmv + ∫Qs + ∫Qsv) / 4
+
+            l = abs2(∫Qav - mean_flow) +
+                abs2(∫Qmv - mean_flow) +
+                abs2(∫Qs  - mean_flow) +
+                abs2(∫Qsv - mean_flow)
+
+            return mass_conservation_weight * l
         end
 
         function cpu_zero_mean_loss(sol, p_NN, zm_vars)
@@ -160,7 +198,7 @@ function PINN_Infuser_new(
         function cpu_negativity_loss(pred_mat, neg_vars)
             l = 0.0
             for j in neg_vars
-                l += sum(abs2, min.(pred_mat[:, j], 0.0))  # only penalizes negative values
+                l += abs2(sum(min.(pred_mat[:, j], 0.0)))  # only penalizes negative values
             end
             return neg_weight * l
         end 
@@ -176,16 +214,26 @@ function PINN_Infuser_new(
             return deriv_weight * l
         end
 
+        function cpu_periodicity_loss(pred_mat)
+            l = 0.0
+            for j in 1:10
+                l += abs2(pred_mat[1, j] - pred_mat[end, j])
+            end
+            return periodic_weight * l
+        end
+
         function cpu_loss(p_NN)
             pred = cpu_predict(p_NN)
             pred_mat = hcat(pred.u...)'
             pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
             L_data = cpu_data_loss(pred_norm, data_norm, data_vars)
-            L_phy = cpu_physics_loss(pred, p_NN, physics_vars)   
+            L_phy = cpu_physics_loss(pred_mat, training_steps, ode_params, physics_vars)   
             L_zm = cpu_zero_mean_loss(pred, p_NN, zm_vars)
             L_deriv = cpu_firstderiv_loss(pred_mat, target_data, deriv_vars)   
             L_neg = cpu_negativity_loss(pred_mat, neg_vars)  
-            return L_data + L_phy + L_zm + L_deriv + L_neg
+            L_periodic = cpu_periodicity_loss(pred_mat)
+            L_mass = cpu_mass_conservation_loss(pred_mat, training_steps)  
+            return L_data + L_phy + L_zm + L_deriv + L_neg + L_periodic + L_mass
         end
 
         adtype = Optimization.AutoForwardDiff()
@@ -199,20 +247,24 @@ function PINN_Infuser_new(
             pred_mat = hcat(pred.u...)'
             pred_norm = (pred_mat .- U_MEAN') ./ U_STD'
             l_data = cpu_data_loss(pred_norm, data_norm, data_vars)
-            l_phy = cpu_physics_loss(pred, state.u, physics_vars)
+            l_phy = cpu_physics_loss(pred_mat, training_steps, ode_params, physics_vars)
             l_zm = cpu_zero_mean_loss(pred, state.u, zm_vars)
             l_deriv = cpu_firstderiv_loss(pred_mat, target_data, deriv_vars)
             l_neg = cpu_negativity_loss(pred_mat, neg_vars)
-            push!(losses, l_data + l_phy + l_zm + l_deriv + l_neg)
+            l_periodic = cpu_periodicity_loss(pred_mat)
+            l_mass = cpu_mass_conservation_loss(pred_mat, training_steps)
+            push!(losses, l_data + l_phy + l_zm + l_deriv + l_neg + l_periodic + l_mass)
             push!(nn_history, cpu_compute_nn_contributions(pred, state.u))
                 println(
                 "Iter $(length(losses)) | " *
-                "Total: $(round(l_data + l_phy + l_zm + l_deriv + l_neg, sigdigits=5)) | " *
+                "Total: $(round(l_data + l_phy + l_zm + l_deriv + l_neg + l_periodic + l_mass, sigdigits=5)) | " *
                 "Data: $(round(l_data, sigdigits=5)) | " *
                 "Physics: $(round(l_phy, sigdigits=5)) | " *
                 "Zero Mean: $(round(l_zm, sigdigits=5)) | " *
                 "Deriv: $(round(l_deriv, sigdigits=5)) | " *
-                "Negativity: $(round(l_neg, sigdigits=5))"
+                "Negativity: $(round(l_neg, sigdigits=5)) | " *
+                "Periodicity: $(round(l_periodic, sigdigits=5)) | " *
+                "Mass Cons: $(round(l_mass, sigdigits=5))"
             )
             if early_stopping &&
                 length(losses) > 50 &&
