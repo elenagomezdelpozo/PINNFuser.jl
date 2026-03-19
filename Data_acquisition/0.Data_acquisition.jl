@@ -1,5 +1,6 @@
 using CellMLToolkit, ModelingToolkit, OrdinaryDiffEq
 using DelimitedFiles, StableRNGs, Statistics
+using Plots
 
 rng = StableRNG(5958)
 
@@ -15,6 +16,7 @@ main_sol = solve(prob, Tsit5(); saveat = tsteps, reltol = 1e-4, abstol = 1e-7, d
 
 sys = ml.sys
 
+"""
 # Data for 1 Chamber
 data_to_save = hcat(
     main_sol[sys.LV.Pi],
@@ -27,7 +29,7 @@ data_to_save = hcat(
 )
 writedlm("/Applications/Desktop/CODE/PINNFuser.jl/Data_acquisition/original_data_1Ch.txt", data_to_save)
 println("Dane zapisane do pliku original_data_1Ch.txt")
-
+"""
 # Data for 2 Chambers
 data_to_save = hcat(
     main_sol[sys.LV.Pi], # pLV
@@ -44,6 +46,44 @@ data_to_save = hcat(
 writedlm("/Applications/Desktop/CODE/PINNFuser.jl/Data_acquisition/original_data_2Ch.txt", data_to_save)
 println("Dane zapisane do pliku original_data_2Ch.txt")
 
+loaded_data = readdlm("/Applications/Desktop/CODE/PINNFuser.jl/Data_acquisition/original_data_2Ch.txt") # NEW DATA ACQUISITION METHOD
+extrap_original_data = Array{Float64}(loaded_data)[1:Int(floor(40 * 150)), :] # 40 seconds of data, 150 samples per second
+new_tseps = range(0, 20, length = 20*150)
+mask_model = new_tseps .>= 18.0
+time_to_plot = new_tseps[mask_model]
+data_to_plot  = extrap_original_data[18*150+1:20*150 , :]
+
+
+p1 = plot(
+    time_to_plot,
+    # [data_to_plot[:,1],
+    data_to_plot[:,6],#],
+    label = "VLA",
+    lw = 2,
+    ylims = (10,40)
+)
+display(p1)
+
+p1 = plot(
+    time_to_plot,
+    # [data_to_plot[:,1],
+    data_to_plot[:,2],#],
+    label = "PLA",
+    lw = 2,
+    ylims = (1,5)
+)
+display(p1)
+
+#P-V LOOP ATRIUM
+p2 = plot(
+    data_to_plot[:,6],
+    data_to_plot[:,2],
+    label = "PvsV",
+    lw = 2
+)
+display(p2)
+"""
+
 # Add noise
 # noise_magnitude = 0.00
 # sd = std(data_to_save, dims = 2)
@@ -51,3 +91,4 @@ println("Dane zapisane do pliku original_data_2Ch.txt")
 
 # writedlm("../data/original_extrapolation.txt", data_to_save)
 # println("Dane zapisane do pliku original_extrapolation.txt")
+"""

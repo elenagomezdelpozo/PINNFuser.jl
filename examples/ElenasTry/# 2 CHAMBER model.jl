@@ -7,7 +7,7 @@ using Optimization, OptimizationOptimisers, OptimizationOptimJL
 using Optim, Measures, BenchmarkTools
 using DelimitedFiles, ForwardDiff
 using Plots
-include("/Applications/Desktop/CODE/Thesis/PINNFuser.jl/examples/ElenasTry/cvmodelelena.jl")
+include("/Applications/Desktop/CODE/PINNFuser.jl/examples/ElenasTry/cvmodelelena.jl")
 using .elenasimpleModel
 import Main.elenasimpleModel: Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a, Valve
 
@@ -46,7 +46,7 @@ num_of_samples_per_cycle = 150
 num_of_samples = num_of_samples_per_cycle * num_of_cycles 
 tsteps = range(5.0, 5.0 + num_of_cycles * τ , length = num_of_samples)
 # loaded_data = readdlm("/Applications/Desktop/CODE/Data_acquisition/data/original_data.txt") # NEW DATA ACQUISITION METHOD
-loaded_data = readdlm("/Applications/Desktop/CODE/Data_acquisition/data/original_data_new.txt") # NEW DATA ACQUISITION METHOD
+loaded_data = readdlm("/Applications/Desktop/CODE/PINNFuser.jl/Data_acquisition/original_data_2Ch.txt") # NEW DATA ACQUISITION METHOD
 extrap_original_data = Array{Float64}(loaded_data)[1:Int(floor(extrapolation_tspan[2] * num_of_samples_per_cycle)), :]
 original_data = extrap_original_data[751:750 + num_of_samples, :]
 new_tseps = range(extrapolation_tspan[1], extrapolation_tspan[2], length = Int(floor(extrapolation_tspan[2] * num_of_samples_per_cycle)))
