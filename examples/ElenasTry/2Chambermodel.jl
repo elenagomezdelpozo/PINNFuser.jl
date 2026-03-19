@@ -1,26 +1,31 @@
 # 2 CHAMBER model
-
-
 using OrdinaryDiffEq
 using Lux, Plots, Zygote, Statistics, StableRNGs, ComponentArrays
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
 using Optim, Measures, BenchmarkTools
 using DelimitedFiles, ForwardDiff
 using Plots
-include("/Applications/Desktop/CODE/PINNFuser.jl/examples/ElenasTry/cvmodelelena.jl")
-using .elenasimpleModel
-import Main.elenasimpleModel: Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a, Valve
 
+if !isdefined(Main, :elenasimpleModel)
+    include("/Applications/Desktop/CODE/PINNFuser.jl/examples/ElenasTry/cvmodelelena.jl")
+    using .elenasimpleModel
+    import Main.elenasimpleModel: Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a, Valve
+end
 
 # Things that can be changed
 tspan = (0.0, 40.0)
-num_of_cycles = 6 # 1 cycle for training
+num_of_cycles = 5 # 1 cycle for training
 τ = 1.0 # Cardiac cycle period
 extrapolation_tspan = (0.0, 40.0)
-τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la = 0.3, 0.45, 0.25, 0.15
+τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la = 0.3, 0.45, 0.92, 0.09
+#         Rmv,   Zao,   Rs,     Rsv,  Csa,   Csv,  Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la]
+p_pred = [0.01, 0.015, 0.9925, 0.02, 1.023, 15.993,  2.597,  0.071,  0.20,   0.10]
+# p_pred = p_opt[1:10]
 Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = p_pred
-u0 = [7.0, 7.0, 7.0, 7.0, 200.0, 60.0, 0.0, 0.0, 0.0, 0.0] 
-#.    pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv
+#.    pLV, pLA, psa, psv,  Vlv,  Vla,  Qav, Qmv, Qs, Qsv
+p_0 = 7.9
+u0 = [p_0, p_0, p_0, p_0, 120.0, 40.0, 0.0, 0.0, 0.0, 0.0] 
+# u0   = [p_opt[11], p_opt[11], p_opt[12], p_opt[13], p_opt[14], p_opt[15], 0.0, 0.0, 0.0, 0.0]
 
 Eshift = 0.0
 τ = 1.0
@@ -45,22 +50,22 @@ u0 = [12.0, # pLV
 num_of_samples_per_cycle = 150
 num_of_samples = num_of_samples_per_cycle * num_of_cycles 
 tsteps = range(5.0, 5.0 + num_of_cycles * τ , length = num_of_samples)
-# loaded_data = readdlm("/Applications/Desktop/CODE/Data_acquisition/data/original_data.txt") # NEW DATA ACQUISITION METHOD
 loaded_data = readdlm("/Applications/Desktop/CODE/PINNFuser.jl/Data_acquisition/original_data_2Ch.txt") # NEW DATA ACQUISITION METHOD
 extrap_original_data = Array{Float64}(loaded_data)[1:Int(floor(extrapolation_tspan[2] * num_of_samples_per_cycle)), :]
-original_data = extrap_original_data[751:750 + num_of_samples, :]
+original_data = extrap_original_data[1501:1500 + num_of_samples, :]
 new_tseps = range(extrapolation_tspan[1], extrapolation_tspan[2], length = Int(floor(extrapolation_tspan[2] * num_of_samples_per_cycle)))
 
 function NIK_2ch!(du, u, p, t)
     pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv = u
-    du[1] =
-        (Qmv - Qav) * Elastance_v(t, Eₘᵢₙ_lv, Eₘₐₓ_lv, τ, τₑₛ_lv, τₑₚ_lv, Eshift) +
-        (pLV / Elastance_v(t, Eₘᵢₙ_lv, Eₘₐₓ_lv, τ, τₑₛ_lv, τₑₚ_lv, Eshift))*
-        DShiElastance_v(t, Eₘᵢₙ_lv, Eₘₐₓ_lv, τ, τₑₛ_lv, τₑₚ_lv, Eshift) # Left Ventricle pressure
-    du[2] =
-        (Qsv - Qmv) * Elastance_a(t, Eₘᵢₙ_la, Eₘₐₓ_la, τ, τₑₛ_la, τₑₚ_la) +
-        (pLA / Elastance_a(t, Eₘᵢₙ_la, Eₘₐₓ_la, τ, τₑₛ_la, τₑₚ_la)) *
-        DShiElastance_a(t, Eₘᵢₙ_la, Eₘₐₓ_la, τ, τₑₛ_la, τₑₚ_la) # Left Atrium pressure
+    Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = p
+
+    E_lv  = Elastance_v(t,  Eₘᵢₙ_lv, Eₘₐₓ_lv, τ, τₑₛ_lv, τₑₚ_lv, Eshift)
+    dE_lv = DShiElastance_v(t, Eₘᵢₙ_lv, Eₘₐₓ_lv, τ, τₑₛ_lv, τₑₚ_lv, Eshift)
+    E_la  = Elastance_a(t,  Eₘᵢₙ_la, Eₘₐₓ_la, τ, τₑₛ_la, τₑₚ_la)
+    dE_la = DShiElastance_a(t, Eₘᵢₙ_la, Eₘₐₓ_la, τ, τₑₛ_la, τₑₚ_la)
+
+    du[1] = (Qmv - Qav) * E_lv + (pLV / E_lv) * dE_lv # Left Ventricle pressure
+    du[2] = (Qsv - Qmv) * E_la + (pLA / E_la) * dE_la # Left Atrium pressure
     du[3] = (Qav - Qs) / Csa # Systemic Arterial pressure
     du[4] = (Qs - Qsv) / Csv # Systemic Venous pressure
     du[5] = Qmv - Qav # LV volume
@@ -72,7 +77,7 @@ function NIK_2ch!(du, u, p, t)
 end
 
 # Making ODE matrix -> one_chamber_sol
-ode_problem = ODEProblem(NIK_2ch!, u0, tspan, params)
+ode_problem = ODEProblem(NIK_2ch!, u0, tspan, p_pred)
 ode_sol = solve(ode_problem, Vern7(); saveat = new_tseps, reltol = 1e-6, abstol = 1e-6)
 two_chamber_sol = Matrix(Array(ode_sol)')
 
@@ -80,7 +85,7 @@ t_data_full = range(0, 40, length = size(original_data, 1))
 mask_model = new_tseps .>= 35.0
 time_to_plot = new_tseps[mask_model]
 two_ode_to_plot  = two_chamber_sol[mask_model, :]
-data_to_plot  = original_data[151:end , :]
+data_to_plot  = original_data
 
 labels = [
     "pLV",
@@ -94,6 +99,18 @@ labels = [
     "Qs",
     "Qsv",
 ]
+ylims = [
+    (0, 130),
+    (0, 20),
+    (40, 140),
+    (5, 15),
+    (30, 150),
+    (40, 80),
+    (0, 1000),
+    (0, 800),
+    (40, 100),
+    (0, 130)
+]
 plots = [
     begin
         p = plot(
@@ -102,6 +119,7 @@ plots = [
             label = "2 CHAMBER",
             xlabel = "time",
             ylabel = labels[i],
+            #ylims = ylims[i],
             lw = 2
         )
         plot!(time_to_plot,
@@ -109,14 +127,16 @@ plots = [
             label = "TARGET 4 CHAMBER",
             xlabel = "time",
             ylabel = labels[i],
+            #ylims = ylims[i],
             lw = 2
         )
         p
     end
     for i in 1:10
 ]
-plot(
+p1 = plot(
     plots...,
     layout = (5, 2),
     size = (900, 800)
 )
+display(p1)

@@ -3,7 +3,7 @@ using Lux, Plots, Zygote, Statistics, StableRNGs, ComponentArrays
 using Optimization, OptimizationOptimisers
 using Optim, Measures, BenchmarkTools
 using DelimitedFiles
-using LinearAlgebra, JLD2
+using Plots, LinearAlgebra, JLD2
 # using LuxCUDA          # GPU support for Lux
 using SciMLSensitivity # provides InterpolatingAdjoint / ZygoteVJP
 

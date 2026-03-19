@@ -1,5 +1,3 @@
-# 1 CHAMBER model
-
 using OrdinaryDiffEq
 using Lux, Plots, Zygote, Statistics, StableRNGs, ComponentArrays
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
