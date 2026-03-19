@@ -27,7 +27,8 @@
 <!-- pvn -->
 <variable initial_value="0.0006" name="Rpvn" public_interface="out" units="UnitR"> </variable>
 <variable initial_value="20.5" name="Cpvn" public_interface="out" units="UnitC"/>
-<variable initial_value="5." name="P0pvn" public_interface="out" units="UnitP"/>
+<variable initial_value="0." name="P0pvn" public_interface="out" units="UnitP"/>
 
 </component>
+
 </model>
