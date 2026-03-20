@@ -3,7 +3,7 @@ using OptimizationBBO
 using LinearAlgebra
 using DelimitedFiles
 using Optimization, OptimizationOptimJL
- using Plots
+using Plots
 
 if !isdefined(Main, :elenasimpleModel)
     include("/Applications/Desktop/CODE/PINNFuser.jl/examples/ElenasTry/cvmodelelena.jl")
@@ -59,8 +59,8 @@ target_min = vec(minimum(training_data[fit_range, data_vars], dims=1))
 target_amp = max.(target_max .- target_min, 1.0)   # FIX 3: floor at 1.0 to prevent /0
 #         1Rmv    2Zao     3Rs     4Rsv    5Csa    6Csv    7Emax_lv 8Emin_lv 9Emax_la 10Emin_la 11pLV0 12pLA0  13psa0  14psv0  15Vlv0  16Vla0
 p_phys = [0.009,  0.0020,  1.292,  0.070,  1.023,  10.90,  4.597,   0.0739,  0.14,    0.06,     8.0,   8.0,    30.0,   8.5,    130.0,  75.0]
-lb     = [0.001,  0.0005,  0.500,  0.005,  0.500,  50.00,  0.500,   0.02,    0.05,    0.02,     2.0,   2.0,    60.0,   2.0,    80.0,   40.0]
-ub     = [0.050,  0.0400,  2.500,  0.100,  2.500,  150.0,  5.000,   0.150,   0.40,    0.10,     15.0,  15.0,   120.0,  12.0,   180.0,  100.0]
+lb     = [0.001,  0.0005,  0.500,  0.005,  0.500,  10.00,  0.500,   0.02,    0.05,    0.02,     2.0,   2.0,    10.0,   2.0,    80.0,   40.0]
+ub     = [0.050,  0.0400,  2.500,  0.100,  2.500,  150.0,  5.000,   0.150,   0.40,    0.10,     15.0,  15.0,   70.0,  15.0,   180.0,  100.0]
 
 slack    = 0.35
 lb_tight = clamp.(p_phys .* (1 .- slack), lb, ub)

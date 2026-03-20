@@ -1,3 +1,4 @@
+ENV["GKSwstype"] = "100"
 # 2 CHAMBER model
 using OrdinaryDiffEq
 using Lux, Plots, Zygote, Statistics, StableRNGs, ComponentArrays
@@ -11,24 +12,6 @@ if !isdefined(Main, :elenasimpleModel)
     using .elenasimpleModel
     import Main.elenasimpleModel: Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a, Valve
 end
-
-# Things that can be changed
-tspan = (0.0, 40.0)
-num_of_cycles = 5 # 1 cycle for training
-τ = 1.0 # Cardiac cycle period
-extrapolation_tspan = (0.0, 40.0)
-τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la = 0.3, 0.45, 0.92, 0.09
-#         Rmv,   Zao,   Rs,     Rsv,  Csa,   Csv,  Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la]
-p_pred = [0.01, 0.015, 0.9925, 0.02, 1.023, 15.993,  2.597,  0.071,  0.20,   0.10]
-# p_pred = p_opt[1:10]
-Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = p_pred
-#.    pLV, pLA, psa, psv,  Vlv,  Vla,  Qav, Qmv, Qs, Qsv
-p_0 = 7.9
-u0 = [p_0, p_0, p_0, p_0, 120.0, 40.0, 0.0, 0.0, 0.0, 0.0] 
-# u0   = [p_opt[11], p_opt[11], p_opt[12], p_opt[13], p_opt[14], p_opt[15], 0.0, 0.0, 0.0, 0.0]
-
-Eshift = 0.0
-τ = 1.0
 """
 params = [0.3, 0.45, 0.012, 0.004, 1.01, 0.12, 1.3, 25.0, 2.7, 0.08, 0.9, 0.95, 0.25, 0.15]
 τₑₛ_lv, τₑₚ_lv, Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, τₑₛ_la, τₑₚ_la, Eₘₐₓ_la, Eₘᵢₙ_la = params
@@ -45,6 +28,19 @@ u0 = [12.0, # pLV
     0.0,    # Qsv
     ] 
 """
+#p_pred = [0.009,  0.0020, 1.292,  0.070,  1.023,  10.90,  4.597,   0.0709,  0.14,    0.06]
+
+# Things that can be changed
+tspan = (0.0, 40.0); num_of_cycles = 5 ; τ = 1.0 ; Eshift = 0.0
+extrapolation_tspan = (0.0, 40.0)
+τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la = 0.3, 0.45, 0.92, 0.09
+#         Rmv,    Zao,    Rs,     Rsv,    Csa,    Csv,    Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la]
+p_pred = [0.013,  0.0020, 1.292,  0.070,  1.023,  10.90,  5.2,     0.0709,  0.20,    0.06]
+# p_pred = p_opt[1:10]
+Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = p_pred
+#.    pLV,   pLA,    psa,    psv,    Vlv,    Vla,  Qav, Qmv, Qs,  Qsv
+u0 = [8.0,   8.0,    30.0,   21.5,    130.0,  75.0, 0.0, 0.0, 0.0, 0.0] 
+# u0   = [p_opt[11], p_opt[11], p_opt[12], p_opt[13], p_opt[14], p_opt[15], 0.0, 0.0, 0.0, 0.0]
 
 # Do not change these
 num_of_samples_per_cycle = 150
@@ -101,11 +97,11 @@ labels = [
 ]
 ylims = [
     (0, 130),
-    (0, 20),
+    (4, 10),
     (40, 140),
-    (5, 15),
+    (22,24),
     (30, 150),
-    (40, 80),
+    (20, 70),
     (0, 1000),
     (0, 800),
     (40, 100),
@@ -119,7 +115,7 @@ plots = [
             label = "2 CHAMBER",
             xlabel = "time",
             ylabel = labels[i],
-            #ylims = ylims[i],
+            ylims = ylims[i],
             lw = 2
         )
         plot!(time_to_plot,
@@ -127,7 +123,7 @@ plots = [
             label = "TARGET 4 CHAMBER",
             xlabel = "time",
             ylabel = labels[i],
-            #ylims = ylims[i],
+            ylims = ylims[i],
             lw = 2
         )
         p
@@ -140,3 +136,7 @@ p1 = plot(
     size = (900, 800)
 )
 display(p1)
+
+# load data
+data_to_save = hcat(two_chamber_sol)
+writedlm("Data_acquisition/two_chamber_ode.txt", data_to_save)

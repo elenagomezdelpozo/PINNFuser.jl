@@ -4,7 +4,7 @@ using Plots
 
 rng = StableRNG(5958)
 
-ml = CellModel("Data_acquisition/ModelMain.cellml")
+ml = CellModel("Data_acquisition/Model/ModelMain.cellml")
 
 # Training range
 tspan = (0.0, 40.0)
@@ -17,11 +17,12 @@ main_sol = solve(prob, Tsit5(); saveat = tsteps, reltol = 1e-4, abstol = 1e-7, d
 sys = ml.sys
 
 # Data for 2 Chambers
+
 data_to_save = hcat(
     main_sol[sys.LV.Pi], # pLV
     main_sol[sys.LA.Pi], # pLA
     main_sol[sys.Sas.Pi], # pSA
-    main_sol[sys.Svn.Po], # pSV
+    main_sol[sys.Svn.Pi], # pSV has changed
     main_sol[sys.LV.V], # vLV
     main_sol[sys.LA.V], # vLA
     main_sol[sys.LV.Qo], # Qav
@@ -29,13 +30,17 @@ data_to_save = hcat(
     main_sol[sys.Sat.Qo], # Qs
     main_sol[sys.Svn.Qo], # Qsv
 )
+
 writedlm("Data_acquisition/original_data_2Ch.txt", data_to_save)
 loaded_data = readdlm("Data_acquisition/original_data_2Ch.txt") # NEW DATA ACQUISITION METHOD
 extrap_original_data = Array{Float64}(loaded_data)[1:Int(floor(40 * 150)), :] # 40 seconds of data, 150 samples per second
-new_tseps = range(0, 20, length = 20*150)
-mask_model = new_tseps .>= 15.0
+new_tseps = range(0, 40, length = 40*150)
+mask_model = new_tseps .>= 35.0
 time_to_plot = new_tseps[mask_model]
-data_to_plot  = extrap_original_data[15*150+1:20*150 , :]
+data_to_plot  = extrap_original_data[35*150+1:40*150 , :]
+two_chamber_sol = readdlm("Data_acquisition/two_chamber_ode.txt") # 40s
+two_ode_to_plot = two_chamber_sol[mask_model, :]
+
 
 labels = [
     "pLV",
@@ -53,7 +58,7 @@ ylims = [
     (0, 130),
     (4, 8),
     (50, 150),
-    (5, 15),
+    (5, 30),
     (0, 150),
     (0, 70),
     (0, 1500),
@@ -73,7 +78,7 @@ plots = [
             lw = 2
         )
         plot!(time_to_plot,
-            data_to_plot[:, i],
+            two_ode_to_plot[:, i],
             label = "2 CHAMBER",
             xlabel = "time",
             ylabel = labels[i],
@@ -90,7 +95,7 @@ p1 = plot(
     size = (900, 800)
 )
 display(p1)
-"""
+
 #P-V LOOP ATRIUM
 p2 = plot(
     data_to_plot[:,6],
@@ -119,6 +124,4 @@ data_to_save = hcat(
     main_sol[sys.LA.Qo],
     main_sol[sys.Svn.Qi],
 )
-writedlm("/Applications/Desktop/CODE/PINNFuser.jl/Data_acquisition/original_data_1Ch.txt", data_to_save)
-println("Dane zapisane do pliku original_data_1Ch.txt")
-"""
+writedlm("/Applications/Desktop/CODE/PINNFuser.jl/Data_acquisition/original_data_2Ch.txt", data_to_save)
