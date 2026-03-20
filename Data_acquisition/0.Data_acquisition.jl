@@ -4,7 +4,7 @@ using Plots
 
 rng = StableRNG(5958)
 
-ml = CellModel("Data_acquisition/ModelMain.cellml")
+ml = CellModel("Data_acquisition/Model/ModelMain.cellml")
 
 # Training range
 tspan = (0.0, 40.0)
