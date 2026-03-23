@@ -113,7 +113,7 @@ p3 = plot(
     lw = 2
 )
 display(p3)
-
+"""
 # Data for 1 Chamber
 data_to_save = hcat(
     main_sol[sys.LV.Pi],
@@ -126,3 +126,4 @@ data_to_save = hcat(
 )
 writedlm("/Applications/Desktop/CODE/PINNFuser.jl/Data_acquisition/original_data_1Ch.txt", data_to_save)
 println("Dane zapisane do pliku original_data_1Ch.txt")
+"""
