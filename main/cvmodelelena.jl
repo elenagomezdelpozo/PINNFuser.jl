@@ -1,6 +1,6 @@
 module elenasimpleModel
 
-export NIK!, NIK_PINN!, Valve, Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a
+export NIK_2ch, Valve, Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a
 
 function Valve(R, deltaP, open)
     dq = 0.0
@@ -64,35 +64,25 @@ function DShiElastance_a(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ)
     end
 end
 
-#Shi timing parameters
-Eshift = 0.0
-Eₘᵢₙ = 0.03
+function NIK_2ch!(du, u, p, t)
+    pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv = u
+    Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = p
 
-τₑₛ = 0.3
-τₑₚ = 0.45
-Eₘₐₓ = 1.5
-Rmv = 0.006
-τ = 1.0
+    E_lv  = Elastance_v(t,  Eₘᵢₙ_lv, Eₘₐₓ_lv, τ, τₑₛ_lv, τₑₚ_lv, Eshift)
+    dE_lv = DShiElastance_v(t, Eₘᵢₙ_lv, Eₘₐₓ_lv, τ, τₑₛ_lv, τₑₚ_lv, Eshift)
+    E_la  = Elastance_a(t,  Eₘᵢₙ_la, Eₘₐₓ_la, τ, τₑₛ_la, τₑₚ_la)
+    dE_la = DShiElastance_a(t, Eₘᵢₙ_la, Eₘₐₓ_la, τ, τₑₛ_la, τₑₚ_la)
 
-
-function NIK!(du, u, p, t)
-    pLV, psa, psv, Vlv, Qav, Qmv, Qs = u
-    τₑₛ, τₑₚ, Rmv, Zao, Rs, Csa, Csv, Eₘₐₓ, Eₘᵢₙ = p
-    # The differential equations
-    du[1] =
-        (Qmv - Qav) * ShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift) +
-        pLV / ShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift) *
-        DShiElastance(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift)
-    # 1 Left Ventricle
-    du[2] = (Qav - Qs) / Csa #Systemic arteries     
-    du[3] = (Qs - Qmv) / Csv # Venous
-    du[4] = Qmv - Qav # LV volume
-    du[5] = Valve(Zao, (du[1] - du[2]), u[1] - u[2])  # AV 
-    du[6] = Valve(Rmv, (du[3] - du[1]), u[3] - u[1])  # MV
-    du[7] = (du[2] - du[3]) / Rs # Systemic flow
+    du[1] = (Qmv - Qav) * E_lv + (pLV / E_lv) * dE_lv # Left Ventricle pressure
+    du[2] = (Qsv - Qmv) * E_la + (pLA / E_la) * dE_la # Left Atrium pressure
+    du[3] = (Qav - Qs) / Csa # Systemic Arterial pressure
+    du[4] = (Qs - Qsv) / Csv # Systemic Venous pressure
+    du[5] = Qmv - Qav # LV volume
+    du[6] = Qsv - Qmv # LA volume
+    du[7] = Valve(Zao, du[1] - du[3], pLV- psa)  # AV flow
+    du[8] = Valve(Rmv, du[2] - du[1], pLA - pLV)  # MV flow
+    du[9] = (du[3] - du[4]) / Rs # Systemic flow
+    du[10] = (du[4] - du[2]) / Rsv # Venous flow
 end
-
-u0 = [6.0, 6.0, 6.0, 200.0, 0.0, 0.0, 0.0]
-params = [0.3, 0.45, 0.006, 0.033, 1.11, 1.13, 11.0, 1.5, 0.03]
 
 end

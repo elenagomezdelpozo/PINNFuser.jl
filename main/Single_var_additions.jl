@@ -7,24 +7,10 @@ using Plots, LinearAlgebra, JLD2
 using SciMLSensitivity # provides InterpolatingAdjoint / ZygoteVJP
 
 if !isdefined(Main, :elenasimpleModel)
-    include("/Applications/Desktop/CODE/PINNFuser.jl/examples/ElenasTry/cvmodelelena.jl")
+    include("/Applications/Desktop/CODE/PINNFuser.jl/main/cvmodelelena.jl")
     using .elenasimpleModel
     import Main.elenasimpleModel: Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a, Valve
 end
-
-tspan = (0.0, 7.0)
-num_of_samples = 150
-tsteps = range(6.0, 7.0, length = num_of_samples)
-
-# ODE data
-u0 = [8.0, 8.0, 30.0, 21.5, 130.0, 75.0, 0.0, 0.0, 0.0, 0.0] 
-params = [0.013, 0.0020, 1.292, 0.070, 1.023, 10.90, 5.2, 0.0709, 0.20, 0.06]
-ode_problem = ODEProblem(NIK_2ch!, u0, tspan, params)
-
-# Target data
-loaded_data = readdlm("/Applications/Desktop/CODE/PINNFuser.jl/Data_acquisition/original_data_2Ch.txt")
-extrap_original_data = Array{Float64}(loaded_data)[1:3000, :]
-original_data = extrap_original_data[901:1050, :]
 
 function NIK_2ch!(du, u, p, t)
     pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv = u
@@ -52,30 +38,52 @@ NN = Lux.Chain(
     Lux.Dense(10, 10, tanh),
     Lux.Dense(10, 10, tanh),
     Lux.Dense(10, 10, tanh),
-    Lux.Dense(10, 6),
+    Lux.Dense(10, 1),
 )
+
+tspan = (0.0, 40.0)
+num_of_samples_per_cycle = 150
+num_of_cycles = 1
+num_of_samples = num_of_samples_per_cycle * num_of_cycles
+tsteps = range(39.0, 40.0, length = num_of_samples)
+
+# ODE data
+Eshift = 0.0
+τ = 1.0
+τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la = 0.3, 0.45, 0.92, 0.09
+u0 = [8.0,   8.0,    30.0,   21.5,    130.0,  75.0, 0.0, 0.0, 0.0, 0.0] 
+params = [0.013,  0.0020, 1.292,  0.070,  1.023,  10.90,  5.2,     0.0709,  0.20,    0.06]
+Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = params
+ode_problem = ODEProblem(NIK_2ch!, u0, tspan, params)
+
+# Target data
+loaded_data = readdlm("/Applications/Desktop/CODE/PINNFuser.jl/data_acquisition/original_data_2Ch.txt")
+extrapolation_tspan = (0.0, 40.0)
+extrap_original_data = Array{Float64}(loaded_data)[1:Int(floor(extrapolation_tspan[2] * num_of_samples_per_cycle)), :]
+original_data = extrap_original_data[1501:1500 + num_of_samples, :]
 
 include("/Applications/Desktop/CODE/PINNFuser.jl/src/PINN_Infuser_new.jl")
 using .PINNInfuser_new # name of module
-name = "mass"
-active = ["mass"]
+name = "data"
+active = ["data"]
 config = (
-    data_vars   = [1,2,3],
+    data_vars   = [1, 2, 3, 4, 5, 6],
     data_weight = 1.0,
     physics_vars = [1,2,3],
     physics_weight = 0.1,
-    mass_conservation_weight = 0.5,
-    zm_vars = [1,2,3,],
+    mass_conservation_weight = 1.0,
+    zm_vars = [1, 2, 3, 4, 5, 6],
     zm_weight = 1.0,
-    neg_vars = [1,2,3],
-    neg_weight = 1.0,
-    firstderiv_vars = [1,2,3],
+    neg_vars = [5, 6],
+    neg_weight = 10.0,
+    firstderiv_vars = [1, 2, 3, 4, 5, 6],
     deriv_weight = 1.0,
+    periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1.0
 )
 
 # Training and saving the resulting data (in Trainings)
-for i in 1:10
+for i in 1:6
     trained_p, trained_st, losses, nn_history = PINN_Infuser_new( # name of function
         ode_problem,
         params,
@@ -84,12 +92,13 @@ for i in 1:10
         original_data;
         active, 
         config,
+        nn_vars = [i],
         nn_output_weight = 1.0,
-        learning_rate = 1e-4,
+        learning_rate = 1e-5,
         iters = 200
     )
 
-    jldsave("Trainings/trained_pinn_model_$(name)_$(i).jld2"; 
+    jldsave("trainings/trained_pinn_model_$(name)_$(i).jld2"; 
             trained_p = trained_p, 
             trained_st = trained_st, 
             losses = losses,
@@ -99,8 +108,8 @@ for i in 1:10
 end
 
 # Saving plots of the trainings (in Figures)
-for i in 1:10
-    data = load("Trainings/trained_pinn_model_$(name)_$(i).jld2")
+for i in 1:6
+    data = load("trainings/trained_pinn_model_$(name)_$(i).jld2")
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
@@ -115,11 +124,11 @@ for i in 1:10
 
     # ── Settings (must match training) ───────────────────────────────────────
     nn_output_weight = 1.0
-    nn_vars = [1, 2, 3, 4, 5, 6]   # match what was used in training
+    nn_vars = [i]   # match what was used in training
     tspan   = (0.0, 7.0)
     tsteps  = range(0.0, 7.0, length = 7 * 150)
 
-    # ── PINN ODE (exactly mirrors cpu_pinn_ode! from training) ────────────────
+    # ── PINN ODE (exactly mirrors pinn_ode! from training) ────────────────
     function pinn_ode!(du, u, p, t)
         nn_output = NN(u, p, trained_st)[1]   # plain Vector, no reshape — matches training
         ode_problem.f(du, u, ode_params, t)
@@ -164,11 +173,15 @@ for i in 1:10
         "psa",
         "psv",
         "Vlv",
-        "Vla",
-        "Qav",
-        "Qmv",
-        "Qs",
-        "Qsv",
+        "Vla"
+    ]
+    ylims = [
+        (0, 130),
+        (4, 10),
+        (40, 140),
+        (22,24),
+        (30, 150),
+        (20, 70)
     ]
     plots = [
         begin
@@ -178,6 +191,7 @@ for i in 1:10
                 label = "PINN",
                 xlabel = "time",
                 ylabel = labelss[i],
+                ylims = ylims[i],
                 lw = 2
             )
             plot!(
@@ -198,15 +212,15 @@ for i in 1:10
             )
             p
         end
-        for i in 1:10
+        for i in 1:6
     ]
     p1 = plot(
         plots...,
-        layout = (5, 2),
+        layout = (3, 2),
         title = "Equation $(i)",
         size = (900, 800)
     )
-    savefig(p1, "Figures/Data$(name)_var$(i).png")
+    savefig(p1, "figures/Data$(name)_var$(i)_2.png")
 
     # PLOTING LOSS
     n_epochs = length(losses)
@@ -221,7 +235,7 @@ for i in 1:10
         markersize = 3,
         legend = false)
     
-    savefig(p2, "Figures/Data$(name)_var$(i)_loss.png")
+    savefig(p2, "figures/Data$(name)_var$(i)_loss_2.png")
 
     # PLOTTING NN HISTORY
     tsteps = range(0.0, 1.0, length = 150)
@@ -234,5 +248,5 @@ for i in 1:10
         lw = 2,
         title = "NN History for Equation $(i)",
     )
-    savefig(p3, "Figures/Data$(name)_var$(i)_nn.png")
+    savefig(p3, "figures/Data$(name)_var$(i)_nn_2.png")
 end
