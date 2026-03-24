@@ -42,7 +42,7 @@ function PINN_Infuser_new(
     data_norm = (target_data .- U_MEAN') ./ U_STD'
 
     p_NN, st = Lux.setup(rng, nn)
-    p_NN = 1e-3 * ComponentVector{Float64}(p_NN)
+    p_NN = 1e-2 * ComponentVector{Float64}(p_NN)
 
     function pinn_ode!(du, u, p_NN, t)
         nn_output = nn(u, p_NN, st)[1]
@@ -133,6 +133,14 @@ function PINN_Infuser_new(
 
         # ── Live prediction vs data plot ──────────────────────────────────
         iter = length(losses)
+        ylims = [
+            (0, 130),
+            (4, 8),
+            (50, 150),
+            (5, 30),
+            (0, 150),
+            (0, 70)
+        ]
         if iter % plot_every == 0
             t    = collect(training_steps)
             subplots = [
@@ -141,6 +149,7 @@ function PINN_Infuser_new(
                         label     = "PINN",
                         lw        = 2,
                         xlabel    = "t",
+                        ylims     = ylims[j]
                     )
                     plot!(p, t, target_data[:, j];
                         label = "Data",

@@ -8,7 +8,7 @@ using DelimitedFiles, ForwardDiff
 using Plots
 
 if !isdefined(Main, :elenasimpleModel)
-    include("/Applications/Desktop/CODE/PINNFuser.jl/examples/ElenasTry/cvmodelelena.jl")
+    include("/Applications/Desktop/CODE/PINNFuser.jl/main/cvmodelelena.jl")
     using .elenasimpleModel
     import Main.elenasimpleModel: Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a, Valve
 end
@@ -136,6 +136,7 @@ p1 = plot(
     size = (900, 800)
 )
 display(p1)
+savefig(p1, "2Ch4Ch.png")
 
 # load data
 data_to_save = hcat(two_chamber_sol)

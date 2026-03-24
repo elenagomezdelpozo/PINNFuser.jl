@@ -4,7 +4,7 @@ using Optimization, OptimizationOptimisers
 using Optim, Measures, BenchmarkTools
 using DelimitedFiles
 using Plots, LinearAlgebra, JLD2
-using SciMLSensitivity # provides InterpolatingAdjoint / ZygoteVJP
+using SciMLSensitivity 
 
 if !isdefined(Main, :elenasimpleModel)
     include("/Applications/Desktop/CODE/PINNFuser.jl/main/cvmodelelena.jl")
@@ -34,11 +34,9 @@ function NIK_2ch!(du, u, p, t)
 end
 
 NN = Lux.Chain(
-    Lux.Dense(10, 10, tanh),
-    Lux.Dense(10, 10, tanh),
-    Lux.Dense(10, 10, tanh),
-    Lux.Dense(10, 10, tanh),
-    Lux.Dense(10, 1),
+    Lux.Dense(10, 16, tanh),
+    Lux.Dense(16, 16, tanh),
+    Lux.Dense(16, 6)
 )
 
 tspan = (0.0, 40.0)
@@ -52,7 +50,7 @@ Eshift = 0.0
 τ = 1.0
 τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la = 0.3, 0.45, 0.92, 0.09
 u0 = [8.0,   8.0,    30.0,   21.5,    130.0,  75.0, 0.0, 0.0, 0.0, 0.0] 
-params = [0.013,  0.0020, 1.292,  0.070,  1.023,  10.90,  5.2,     0.0709,  0.20,    0.06]
+params = [0.013, 0.002, 1.292, 0.07, 1.023, 10.9, 5.2, 0.0709, 0.2, 0.06]
 Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = params
 ode_problem = ODEProblem(NIK_2ch!, u0, tspan, params)
 
@@ -69,7 +67,7 @@ active = ["data"]
 config = (
     data_vars   = [1, 2, 3, 4, 5, 6],
     data_weight = 1.0,
-    physics_vars = [1,2,3],
+    physics_vars = [1, 2, 3],
     physics_weight = 0.1,
     mass_conservation_weight = 1.0,
     zm_vars = [1, 2, 3, 4, 5, 6],
@@ -81,7 +79,6 @@ config = (
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1.0
 )
-
 # Training and saving the resulting data (in Trainings)
 for i in 1:6
     trained_p, trained_st, losses, nn_history = PINN_Infuser_new( # name of function
@@ -95,21 +92,20 @@ for i in 1:6
         nn_vars = [i],
         nn_output_weight = 1.0,
         learning_rate = 1e-5,
-        iters = 200
+        iters = 500
     )
 
-    jldsave("trainings/trained_pinn_model_$(name)_$(i).jld2"; 
+    jldsave("trainings/pinn_model_$(name)_$(i).jld2"; 
             trained_p = trained_p, 
             trained_st = trained_st, 
             losses = losses,
             nn_history = nn_history,
             )
-    @info "Model saved successfully to trained_pinn_model_$(name)_$(i).jld2"
+    @info "Model saved successfully to pinn_model_$(name)_$(i).jld2"
 end
-
 # Saving plots of the trainings (in Figures)
 for i in 1:6
-    data = load("trainings/trained_pinn_model_$(name)_$(i).jld2")
+    data = load("trainings/pinn_model_$(name)_$(i).jld2")
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
@@ -167,7 +163,7 @@ for i in 1:6
 
     # ── Plot ──────────────────────────────────────────────────────────────────
 
-    labelss = [
+    labels = [
         "pLV",
         "pLA",
         "psa",
@@ -190,7 +186,7 @@ for i in 1:6
                 pinn_to_plot[:, i],
                 label = "PINN",
                 xlabel = "time",
-                ylabel = labelss[i],
+                ylabel = labels[i],
                 ylims = ylims[i],
                 lw = 2
             )
@@ -220,7 +216,7 @@ for i in 1:6
         title = "Equation $(i)",
         size = (900, 800)
     )
-    savefig(p1, "figures/Data$(name)_var$(i)_2.png")
+    savefig(p1, "figures/$(name)_var$(i).png")
 
     # PLOTING LOSS
     n_epochs = length(losses)
@@ -235,7 +231,7 @@ for i in 1:6
         markersize = 3,
         legend = false)
     
-    savefig(p2, "figures/Data$(name)_var$(i)_loss_2.png")
+    savefig(p2, "figures/$(name)_var$(i)_loss.png")
 
     # PLOTTING NN HISTORY
     tsteps = range(0.0, 1.0, length = 150)
@@ -244,9 +240,9 @@ for i in 1:6
         nn_history[end],
         label = "NN History",
         xlabel = "time",
-        ylabel = labelss[i],
+        ylabel = labels[i],
         lw = 2,
         title = "NN History for Equation $(i)",
     )
-    savefig(p3, "figures/Data$(name)_var$(i)_nn_2.png")
+    savefig(p3, "figures/$(name)_var$(i)_nn.png")
 end
