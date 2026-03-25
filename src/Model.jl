@@ -1,6 +1,6 @@
-module elenasimpleModel
+module Model_module
 
-export NIK_2ch, Valve, Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a
+export NIK_2ch!, Valve, Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a
 
 function Valve(R, deltaP, open)
     dq = 0.0
@@ -67,6 +67,7 @@ end
 function NIK_2ch!(du, u, p, t)
     pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv = u
     Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = p
+    τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la = 0.3, 0.45, 0.92, 0.09
 
     E_lv  = Elastance_v(t,  Eₘᵢₙ_lv, Eₘₐₓ_lv, τ, τₑₛ_lv, τₑₚ_lv, Eshift)
     dE_lv = DShiElastance_v(t, Eₘᵢₙ_lv, Eₘₐₓ_lv, τ, τₑₛ_lv, τₑₚ_lv, Eshift)

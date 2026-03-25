@@ -1,12 +1,10 @@
-module Losses
+module Losses_module
 
 using ComponentArrays, LinearAlgebra
 using SciMLBase
 using Statistics
 
 export loss
-
-# ─── individual loss calculators ──────────────────────────────────────────────
 
 function data_loss(pred_norm, data_norm, data_vars, data_weight)
     return data_weight * sum(mean(abs2, pred_norm[:, j] .- data_norm[:, j]) for j in data_vars)
@@ -97,7 +95,7 @@ function loss(active::Vector{String}, ctx, config)
         "mass"        => () -> mass_conservation_loss(ctx.pred_mat,
                                                       ctx.training_steps,
                                                       config.mass_conservation_weight),
-        "zero_mean" => () -> zero_mean_loss(ctx.pred_mat, ctx.p_NN, ctx.nn, ctx.st,
+        "zero_mean"   => () -> zero_mean_loss(ctx.pred_mat, ctx.p_NN, ctx.nn, ctx.st,
                                               ctx.nn_vars, config.zm_vars, config.zm_weight),
         "negativity"  => () -> negativity_loss(ctx.pred_mat, config.neg_vars,
                                                config.neg_weight),
@@ -107,7 +105,6 @@ function loss(active::Vector{String}, ctx, config)
         "periodicity" => () -> periodicity_loss(ctx.pred_mat, config.periodic_weight, config.periodic_vars),
     )
 
-    # validate requested keys
     unknown = setdiff(active, keys(REGISTRY))
     isempty(unknown) || @warn "Unknown loss keys ignored: $unknown"
 

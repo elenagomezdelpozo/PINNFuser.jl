@@ -1,0 +1,79 @@
+module Parameters_module
+
+using DelimitedFiles
+
+export parameters
+
+independent = (
+    vars = [1,2,3,4,5,6],
+    n_neurons_per_layer = 10,
+
+    tspan = (0.0, 30.0),
+    num_of_samples_per_cycle = 150,
+    num_of_cycles = 1,
+
+    τ = 1.0,
+    Eshift = 0.0,
+
+    u0 = [8.0, 8.0, 30.0, 21.5, 130.0, 75.0, 0.0, 0.0, 0.0, 0.0],
+
+    ode_params = [0.013, 0.002, 1.292, 0.07, 1.023, 10.9, 5.2, 0.0709, 0.2, 0.06],
+
+    extrapolation_tspan = (0.0, 30.0)
+)
+num_of_samples = independent.num_of_samples_per_cycle * independent.num_of_cycles
+
+tsteps = range(29.0, 30.0, length = num_of_samples)
+
+Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.ode_params
+
+loaded_data = readdlm("/Applications/Desktop/CODE/PINNFuser.jl/data/original_data_2Ch.txt")
+
+extrap_original_data = Array{Float64}(loaded_data)[
+    1:Int(floor(independent.extrapolation_tspan[2] * independent.num_of_samples_per_cycle)), :
+]
+
+original_data = extrap_original_data[
+    1501:1500 + num_of_samples, :
+]
+
+config = (
+    data_vars = [1, 2, 3, 4, 5, 6],
+    data_weight = 1.0,
+    physics_vars = [1, 2, 3],
+    physics_weight = 0.1,
+    mass_conservation_weight = 1.0,
+    zm_vars = [1, 2, 3, 4, 5, 6],
+    zm_weight = 1.0,
+    neg_vars = [5, 6],
+    neg_weight = 10.0,
+    firstderiv_vars = [1, 2, 3, 4, 5, 6],
+    deriv_weight = 1e-4,
+    periodic_vars = [1,2,3,4,5,6],
+    periodic_weight = 1.0
+)
+
+dependent = (
+    num_of_samples = num_of_samples,
+    tsteps = tsteps,
+
+    Rmv = Rmv,
+    Zao = Zao,
+    Rs = Rs,
+    Rsv = Rsv,
+    Csa = Csa,
+    Csv = Csv,
+    Emax_lv = Emax_lv,
+    Emin_lv = Emin_lv,
+    Emax_la = Emax_la,
+    Emin_la = Emin_la,
+
+    loaded_data = loaded_data,
+    extrap_original_data = extrap_original_data,
+    original_data = original_data,
+
+    config = config
+)
+parameters = merge(independent, dependent)
+
+end # module

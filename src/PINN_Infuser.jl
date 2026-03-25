@@ -1,20 +1,20 @@
-module PINNInfuser_new
+module PINNInfuser_module
 
 using StableRNGs, ComponentArrays, LinearAlgebra
 using Optimization, OptimizationOptimisers
 using SciMLBase, SciMLSensitivity
 using Statistics
+using ForwardDiff
 using OrdinaryDiffEq: Vern7
 using Lux
 using Plots
 
-include("/Applications/Desktop/CODE/PINNFuser.jl/src/Losses.jl")
-using .Losses
+include("Losses.jl")
+using .Losses_module
 
+export PINN_Infuser_funct
 
-export PINN_Infuser_new
-
-function PINN_Infuser_new(
+function PINN_Infuser_funct(
     ode_problem::SciMLBase.ODEProblem,
     ode_params,
     nn::Lux.Chain,
@@ -40,9 +40,9 @@ function PINN_Infuser_new(
     data_norm = (target_data .- U_MEAN') ./ U_STD'
 
     p_NN, st = Lux.setup(rng, nn)
-    p_NN = 1e-3 * ComponentVector{Float64}(p_NN)
+    p_NN = 1e-4 * ComponentVector{Float64}(p_NN)
 
-    function pinn_ode!(du, u, p_NN, t)
+    function pinn_ode!(du, u, p_NN, t) # modifies the original ODE by adding nn 
         nn_output = nn(u, p_NN, st)[1]
         ode_problem.f(du, u, ode_params, t)
         for (k, i) in enumerate(nn_vars)
@@ -50,7 +50,7 @@ function PINN_Infuser_new(
         end    
     end
 
-    function predict(p_NN)
+    function predict(p_NN) # solving the modified ODE, outputs the new 10 states 
         prob = ODEProblem(
             (du, u, p, t) -> pinn_ode!(du, u, p, t), 
             ode_problem.u0,
@@ -65,23 +65,16 @@ function PINN_Infuser_new(
             reltol=reltol,
             abstol=abstol
         )
-        return temp_sol
+        return temp_sol  
     end
 
-    function compute_nn_contributions(u_mat, p_NN)
-        n_time = size(u_mat, 1)
-        nn_contrib = zeros(n_time, length(nn_vars))
-        for (k, i) in enumerate(nn_vars)
-            for ti in 1:n_time
-                nn_contrib[ti, k] = nn_output_weight * nn(u_mat[ti, :], p_NN, st)[1][k]
-            end
-        end
-        cycle_sums = vec(sum(nn_contrib, dims=1))  # length(nn_vars) vector
-        return cycle_sums
+    function compute_nn_contributions(u_mat, p_NN) #logs of the nn contributions to each variable at each time step
+        nn_out = nn(reshape(u_mat', length(u_mat[1,:]), :), p_NN, st)[1]  # (n_outputs × time)
+        return (nn_output_weight .* nn_out)'  # (time × n_outputs)
     end
 
     function build_ctx(p)
-        sol       = predict(p)
+        sol       = predict(p)              # predicted plots with nn additions based on loss reduction
         sol_arr   = Array(sol)'             # (time × vars)
         pred_mat  = sol_arr
         pred_norm = (sol_arr .- U_MEAN') ./ U_STD'
@@ -101,13 +94,11 @@ function PINN_Infuser_new(
         )
     end
     
-    last_ctx = Ref{Any}(nothing) # to save ctx
     adtype = Optimization.AutoForwardDiff()
     optf = Optimization.OptimizationFunction(
         (x, p) ->   begin
-                        ctx = build_ctx(x) # this builds the current prediction and so on
-                        last_ctx[] = ctx   # saving it so that we dont calculate it again in callback
-                        loss(active, ctx, config).total # this calls the loss module
+                        ctx = build_ctx(x) # this builds the current prediction, parameters, state and so on
+                        loss(active, ctx, config).total # this calculates loss with the Losses module
                     end,
         adtype
     )
@@ -117,9 +108,9 @@ function PINN_Infuser_new(
     nn_history = Vector{Matrix{Float64}}()
 
     callback = function (state, l)
-        ctx    = last_ctx[]
-        result = loss(active, ctx, config)   # NamedTuple, e.g. (data=..., physics=..., total=...)
-        push!(losses, result.total)          # same evaluation as the sub-components
+        ctx    = build_ctx(state.u)
+        result = loss(active, ctx, config)  
+        push!(losses, result.total)  
         log_str = "Iter $(length(losses))"
         for k in keys(result)
             log_str *= " | $(k): $(round(result[k], sigdigits=6))"
@@ -164,7 +155,7 @@ function PINN_Infuser_new(
             )
             display(fig)
         end
-    
+        # ── Early stopping ────────────────────────────────────────────────
         if early_stopping && length(losses) > 100 # let it train for at least 100 iters
             recent_min = minimum(losses[(end-20):(end-1)]) 
             not_improving = losses[end] - recent_min < 1e-6 # stop either when the loss is not improving much
