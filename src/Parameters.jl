@@ -1,4 +1,4 @@
-module Parameters_module
+module ParametersMod
 
 using DelimitedFiles
 
@@ -7,6 +7,13 @@ export parameters
 independent = (
     vars = [1,2,3,4,5,6],
     n_neurons_per_layer = 10,
+    lr = 1e-4,
+    dtmax = 1e-2,
+    nn_output_weight = 1.0,
+    name = "data",
+    active = ["data"], # active losses
+    iterations = 1000,
+    initialisation = 1e-3,
 
     tspan = (0.0, 30.0),
     num_of_samples_per_cycle = 150,
@@ -15,15 +22,22 @@ independent = (
     τ = 1.0,
     Eshift = 0.0,
 
+        # pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv 
     u0 = [8.0, 8.0, 30.0, 21.5, 130.0, 75.0, 0.0, 0.0, 0.0, 0.0],
 
+              # τ, τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la 
+    t_params = [1.0, 0.3, 0.45, 0.92, 0.09],  
+
+                # Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la 
     ode_params = [0.013, 0.002, 1.292, 0.07, 1.023, 10.9, 5.2, 0.0709, 0.2, 0.06],
 
-    extrapolation_tspan = (0.0, 30.0)
+    extrapolation_tspan = (0.0, 30.0),
+
 )
+
 num_of_samples = independent.num_of_samples_per_cycle * independent.num_of_cycles
 
-tsteps = range(29.0, 30.0, length = num_of_samples)
+tsteps = range(29.0, 30.0, length = num_of_samples) # for training
 
 Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.ode_params
 
@@ -32,10 +46,7 @@ loaded_data = readdlm("/Applications/Desktop/CODE/PINNFuser.jl/data/original_dat
 extrap_original_data = Array{Float64}(loaded_data)[
     1:Int(floor(independent.extrapolation_tspan[2] * independent.num_of_samples_per_cycle)), :
 ]
-
-original_data = extrap_original_data[
-    1501:1500 + num_of_samples, :
-]
+original_data = extrap_original_data[1501:1500 + num_of_samples, :]
 
 config = (
     data_vars = [1, 2, 3, 4, 5, 6],
@@ -52,7 +63,26 @@ config = (
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1.0
 )
+plot_params = (
+    plot_time = (0,7),
 
+    labels = [
+        "pLV",
+        "pLA",
+        "psa",
+        "psv",
+        "Vlv",
+        "Vla"
+    ],
+    ylims = [
+        (0, 130),
+        (4, 10),
+        (40, 140),
+        (22,24),
+        (30, 150),
+        (20, 70)
+    ]
+)
 dependent = (
     num_of_samples = num_of_samples,
     tsteps = tsteps,
@@ -74,6 +104,7 @@ dependent = (
 
     config = config
 )
-parameters = merge(independent, dependent)
+
+parameters = merge(plot_params, independent, dependent)
 
 end # module

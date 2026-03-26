@@ -1,4 +1,4 @@
-module PINNInfuser_module
+module PINNInfuserMod
 
 using StableRNGs, ComponentArrays, LinearAlgebra
 using Optimization, OptimizationOptimisers
@@ -10,11 +10,11 @@ using Lux
 using Plots
 
 include("Losses.jl")
-using .Losses_module
+using .LossesMod
 
-export PINN_Infuser_funct
+export PINN_Infuser_f
 
-function PINN_Infuser_funct(
+function PINN_Infuser_f(
     ode_problem::SciMLBase.ODEProblem,
     ode_params,
     nn::Lux.Chain,
@@ -24,6 +24,7 @@ function PINN_Infuser_funct(
     config::NamedTuple,
     nn_vars::Union{Nothing,Vector{Int}} = nothing,
     nn_output_weight::Float64 = 1.0,
+    inisialisation::Float64 = 1e-3,
     optimizer = ADAM,
     learning_rate::Float64 = 1e-3,
     reltol::Float64 = 1e-6,
@@ -40,7 +41,7 @@ function PINN_Infuser_funct(
     data_norm = (target_data .- U_MEAN') ./ U_STD'
 
     p_NN, st = Lux.setup(rng, nn)
-    p_NN = 1e-4 * ComponentVector{Float64}(p_NN)
+    p_NN = initialisation * ComponentVector{Float64}(p_NN)
 
     function pinn_ode!(du, u, p_NN, t) # modifies the original ODE by adding nn 
         nn_output = nn(u, p_NN, st)[1]

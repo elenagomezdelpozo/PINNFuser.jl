@@ -5,17 +5,16 @@ using Optim, Measures, BenchmarkTools
 using DelimitedFiles
 using Plots, LinearAlgebra, JLD2
 using SciMLSensitivity 
-using Revise # to replace old PINN_Infuser
 
 include("../src/Lib.jl")
 using .LibInfuser
 
 include("../src/Parameters.jl")
-using .Parameters_module: parameters
+using .ParametersMod: parameters
 
-name = "data"
-active = ["data"]  
-ode_problem = ODEProblem(NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
+name = parameters.name
+active = parameters.active  
+ode_problem = ODEProblem(LibInfuser.NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
 
 for i in parameters.vars
     @info "Training variable(s) $(i) with loss(es) $(name)"
@@ -27,17 +26,20 @@ for i in parameters.vars
         Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
         Lux.Dense(parameters.n_neurons_per_layer, length(nn_vars)),
     )
-    trained_p, trained_st, losses, nn_history = PINN_Infuser_funct( 
+    trained_p, trained_st, losses, nn_history = LibInfuser.PINN_Infuser_f( 
         ode_problem,
-        parameters.params,
+        parameters.ode_params,
         NN,
         parameters.tsteps,
         parameters.original_data;
         active, 
         parameters.config,
-        nn_vars = nn_vars, # for all variables
-        learning_rate = 1e-4, # this could be changed
-        dtmax = 1e-2, # this also matters, could be changed as well
+        nn_vars = nn_vars, 
+        nn_output_weight = parameters.nn_output_weight,
+        inisialisation = parameters.inisialisation,
+        learning_rate = parameters.lr, 
+        dtmax = parameters.dtmax,
+        iters = parameters.iterations,
         early_stopping = true,
     )
     jldsave("trainings/pinn_model_$(name)_$(i).jld2"; 
@@ -47,5 +49,5 @@ for i in parameters.vars
             nn_history = nn_history,
             )
     @info "Model saved successfully to pinn_model_$(name)_$(i).jld2"
-    Saving_plots_funct(name, i)
+    Saving_plots_f(name, i)
 end

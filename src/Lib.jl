@@ -3,20 +3,24 @@ module LibInfuser
 include("PINN_Infuser.jl")
 include("Losses.jl")
 include("Model.jl")
-include("Saving_plots.jl")
+include("Results_visualisation.jl")
 
 # module names
-export PINNInfuser_module
-export Losses_module
-export Model_module
-export Savingplots_module
+export PINNInfuserMod
+export LossesMod
+export ModelMod
+export SavingplotsMod
 
 
-using .LibInfuser: PINNInfuser_module
-using .LibInfuser.PINNInfuser_module: PINN_Infuser_funct
+using .LibInfuser: PINNInfuserMod
+using .LibInfuser.PINNInfuserMod: PINN_Infuser_f
 
-using .Losses_module
-using .Model_module
-using .Savingplots_module
+using .LossesMod
+
+using .ModelMod
+using .ModelMod: NIK_2ch!
+
+using .PlotsMod
+using .LibInfuser.PlotsMod: Plots_f
 
 end

@@ -1,4 +1,4 @@
-module Losses_module
+module LossesMod
 
 using ComponentArrays, LinearAlgebra
 using SciMLBase
