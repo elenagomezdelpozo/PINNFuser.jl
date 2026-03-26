@@ -12,6 +12,9 @@ using Plots
 include("Losses.jl")
 using .LossesMod
 
+include("Parameters.jl")
+using .ParametersMod: parameters
+
 export PINN_Infuser_f
 
 function PINN_Infuser_f(
@@ -20,19 +23,12 @@ function PINN_Infuser_f(
     nn::Lux.Chain,
     training_steps::AbstractRange,
     target_data::AbstractMatrix{Float64};
-    active::Vector{String},
-    config::NamedTuple,
     nn_vars::Union{Nothing,Vector{Int}} = nothing,
-    nn_output_weight::Float64 = 1.0,
-    inisialisation::Float64 = 1e-3,
     optimizer = ADAM,
-    learning_rate::Float64 = 1e-3,
     reltol::Float64 = 1e-6,
     abstol::Float64 = 1e-6,
-    dtmax = Inf,
-    iters::Int = 1000,
     early_stopping::Bool = true,
-    plot_every::Int = 1,
+    plotting::Bool = true,
     rng::StableRNG = StableRNG(5958)
 )::Tuple{Any,Any, Any, Any}
 
@@ -41,13 +37,13 @@ function PINN_Infuser_f(
     data_norm = (target_data .- U_MEAN') ./ U_STD'
 
     p_NN, st = Lux.setup(rng, nn)
-    p_NN = initialisation * ComponentVector{Float64}(p_NN)
+    p_NN = parameters.initialisation * ComponentVector{Float64}(p_NN)
 
     function pinn_ode!(du, u, p_NN, t) # modifies the original ODE by adding nn 
         nn_output = nn(u, p_NN, st)[1]
         ode_problem.f(du, u, ode_params, t)
         for (k, i) in enumerate(nn_vars)
-            du[i] += nn_output_weight * nn_output[k]  
+            du[i] += parameters.nn_output_weight * nn_output[k]  
         end    
     end
 
@@ -62,7 +58,7 @@ function PINN_Infuser_f(
             prob, 
             Vern7(),
             saveat=training_steps,
-            dtmax=dtmax,
+            dtmax=parameters.dtmax,
             reltol=reltol,
             abstol=abstol
         )
@@ -71,7 +67,7 @@ function PINN_Infuser_f(
 
     function compute_nn_contributions(u_mat, p_NN) #logs of the nn contributions to each variable at each time step
         nn_out = nn(reshape(u_mat', length(u_mat[1,:]), :), p_NN, st)[1]  # (n_outputs × time)
-        return (nn_output_weight .* nn_out)'  # (time × n_outputs)
+        return (parameters.nn_output_weight .* nn_out)'  # (time × n_outputs)
     end
 
     function build_ctx(p)
@@ -99,7 +95,7 @@ function PINN_Infuser_f(
     optf = Optimization.OptimizationFunction(
         (x, p) ->   begin
                         ctx = build_ctx(x) # this builds the current prediction, parameters, state and so on
-                        loss(active, ctx, config).total # this calculates loss with the Losses module
+                        loss(parameters.active, ctx, parameters.config).total # this calculates loss with the Losses module
                     end,
         adtype
     )
@@ -110,7 +106,7 @@ function PINN_Infuser_f(
 
     callback = function (state, l)
         ctx    = build_ctx(state.u)
-        result = loss(active, ctx, config)  
+        result = loss(parameters.active, ctx, parameters.config)  
         push!(losses, result.total)  
         log_str = "Iter $(length(losses))"
         for k in keys(result)
@@ -121,15 +117,7 @@ function PINN_Infuser_f(
 
         # ── Live prediction vs data plot ──────────────────────────────────
         iter = length(losses)
-        ylims = [
-            (0, 130),
-            (4, 8),
-            (50, 150),
-            (20, 25),
-            (0, 150),
-            (0, 70)
-        ]
-        if iter % plot_every == 0
+        if plotting && iter % parameters.plot_every == 0
             t    = collect(training_steps)
             subplots = [
                 begin
@@ -137,7 +125,7 @@ function PINN_Infuser_f(
                         label     = "PINN",
                         lw        = 2,
                         xlabel    = "t",
-                        ylims     = ylims[j]
+                        ylims     = parameters.ylims[j]
                     )
                     plot!(p, t, target_data[:, j];
                         label = "Data",
@@ -146,7 +134,7 @@ function PINN_Infuser_f(
                     )
                     p
                 end
-                for j in 1:6
+                for j in 1:length(parameters.vars)
             ]
 
             fig = plot(subplots...;
@@ -157,10 +145,11 @@ function PINN_Infuser_f(
             display(fig)
         end
         # ── Early stopping ────────────────────────────────────────────────
-        if early_stopping && length(losses) > 100 # let it train for at least 100 iters
-            recent_min = minimum(losses[(end-20):(end-1)]) 
-            not_improving = losses[end] - recent_min < 1e-6 # stop either when the loss is not improving much
-            increasing    = losses[end] > recent_min # or when the loss is increasing
+        if early_stopping && length(losses) > parameters.early_stopping_start # let it train for at least x iters
+            recent_min = minimum(losses[(end-5):(end-1)]) # window of improvement is last 5 iterations
+            not_improving = recent_min + 1e-5 < losses[end] # not improving much in the window (less than 1e-5 better)
+            recent_max = maximum(losses[(end-5):(end-1)]) # window of improvement is last 5 iterations
+            increasing    = losses[end] > recent_max # or when the loss is increasing compared to the last 5 iters
 
             if not_improving || increasing
                 println("Early stopping at iteration $(length(losses)) with loss $(losses[end])")
@@ -173,9 +162,9 @@ function PINN_Infuser_f(
 
     trained_params = Optimization.solve(
         optprob,
-        optimizer(learning_rate),
+        optimizer(parameters.lr),
         callback = callback,
-        maxiters = iters,
+        maxiters = parameters.iterations,
     )
 
     return (trained_params.u, st, losses, nn_history) 

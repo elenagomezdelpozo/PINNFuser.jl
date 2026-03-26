@@ -1,20 +1,30 @@
 module ParametersMod
 
 using DelimitedFiles
+include("Configs.jl")
+using .ConfigsMod: configs
 
 export parameters
+i = parse(Int, ARGS[1])
 
-independent = (
+changeable = (
+    name = configs[i].name          
+    mode = configs[i].mode  
+    active = configs[i].active
     vars = [1,2,3,4,5,6],
+    nn_vars = [1],
     n_neurons_per_layer = 10,
     lr = 1e-4,
     dtmax = 1e-2,
     nn_output_weight = 1.0,
-    name = "data",
-    active = ["data"], # active losses
     iterations = 1000,
     initialisation = 1e-3,
+    early_stopping_start = 10,
+    plot_every = 1,
+    plotting = false
+)
 
+independent = (
     tspan = (0.0, 30.0),
     num_of_samples_per_cycle = 150,
     num_of_cycles = 1,
@@ -52,7 +62,7 @@ config = (
     data_vars = [1, 2, 3, 4, 5, 6],
     data_weight = 1.0,
     physics_vars = [1, 2, 3],
-    physics_weight = 0.1,
+    physics_weight = 1.0,
     mass_conservation_weight = 1.0,
     zm_vars = [1, 2, 3, 4, 5, 6],
     zm_weight = 1.0,
@@ -105,6 +115,6 @@ dependent = (
     config = config
 )
 
-parameters = merge(plot_params, independent, dependent)
+parameters = merge(configuration, changeable, plot_params, independent, dependent)
 
 end # module

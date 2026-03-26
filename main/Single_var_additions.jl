@@ -13,7 +13,6 @@ include("../src/Parameters.jl")
 using .ParametersMod: parameters
 
 name = parameters.name
-active = parameters.active  
 ode_problem = ODEProblem(LibInfuser.NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
 
 for i in parameters.vars
@@ -32,15 +31,9 @@ for i in parameters.vars
         NN,
         parameters.tsteps,
         parameters.original_data;
-        active, 
-        parameters.config,
         nn_vars = nn_vars, 
-        nn_output_weight = parameters.nn_output_weight,
-        inisialisation = parameters.inisialisation,
-        learning_rate = parameters.lr, 
-        dtmax = parameters.dtmax,
-        iters = parameters.iterations,
         early_stopping = true,
+        plotting = parameters.plotting
     )
     jldsave("trainings/pinn_model_$(name)_$(i).jld2"; 
             trained_p = trained_p, 
@@ -49,5 +42,5 @@ for i in parameters.vars
             nn_history = nn_history,
             )
     @info "Model saved successfully to pinn_model_$(name)_$(i).jld2"
-    Saving_plots_f(name, i)
+    LibInfuser.Plots_f(name, i)
 end
