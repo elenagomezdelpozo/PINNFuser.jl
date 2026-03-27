@@ -1,3 +1,4 @@
+__precompile__(false)  # Add this here
 module PINNInfuserMod
 
 using StableRNGs, ComponentArrays, LinearAlgebra
@@ -105,7 +106,17 @@ function PINN_Infuser_f(
     nn_history = Vector{Matrix{Float64}}()
 
     callback = function (state, l)
-        ctx    = build_ctx(state.u)
+        u_curr = hasproperty(state, :u) ? state.u : state
+
+        if parameters.working_on == "hpc"
+            ctx = build_ctx(state) # Check if 'state' or 'current_p' is intended here
+        elseif parameters.working_on == "local"
+            ctx = build_ctx(current_p)
+        else
+            @info "specify hpc or not"
+            return false # Avoid falling through
+        end
+
         result = loss(parameters.active, ctx, parameters.config)  
         push!(losses, result.total)  
         log_str = "Iter $(length(losses))"
@@ -113,7 +124,8 @@ function PINN_Infuser_f(
             log_str *= " | $(k): $(round(result[k], sigdigits=6))"
         end
         println(log_str)
-        push!(nn_history, compute_nn_contributions(ctx.pred_mat, state.u))
+        flush(stdout)
+        push!(nn_history, compute_nn_contributions(ctx.pred_mat, u_curr))
 
         # ── Live prediction vs data plot ──────────────────────────────────
         iter = length(losses)
@@ -147,12 +159,12 @@ function PINN_Infuser_f(
         # ── Early stopping ────────────────────────────────────────────────
         if early_stopping && length(losses) > parameters.early_stopping_start # let it train for at least x iters
             recent_min = minimum(losses[(end-5):(end-1)]) # window of improvement is last 5 iterations
-            not_improving = recent_min + 1e-5 < losses[end] # not improving much in the window (less than 1e-5 better)
+            not_improving = recent_min + 1e-1 < losses[end] # not improving much in the window (less than 1e-5 better)
             recent_max = maximum(losses[(end-5):(end-1)]) # window of improvement is last 5 iterations
             increasing    = losses[end] > recent_max # or when the loss is increasing compared to the last 5 iters
 
             if not_improving || increasing
-                println("Early stopping at iteration $(length(losses)) with loss $(losses[end])")
+                @info "Early stopping at iteration $(length(losses)) with loss $(losses[end])"
                 return true
             end
         end

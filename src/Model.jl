@@ -1,3 +1,4 @@
+__precompile__(false)  # Add this here
 module ModelMod
 
 include("Model_supporting_f.jl")
@@ -6,7 +7,7 @@ using .ModelSuportMod: Valve, Elastance_v, Elastance_a, DShiElastance_v, DShiEla
 
 export NIK_2ch!
 
-function NIK_2ch!(du, u, p, t)
+function NIK_2ch!(du, u::AbstractVector, p, t)
     pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv = u
     Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la = p
     τ, τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la = 1.0, 0.3, 0.45, 0.92, 0.09

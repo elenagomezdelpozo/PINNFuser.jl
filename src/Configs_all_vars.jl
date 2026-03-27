@@ -8,39 +8,53 @@ configs = [
     (
         name            = "data",
         active         =["data"],
+        early_stopping_start = 100
+
     ),
 
     # ── Example 2: single-var, data + physics losses ─────────
     (
         name            = "data_phy",
         active         =["data", "physics"],
+        early_stopping_start = 100
+
     ),
 
     # ── Example 3: all-vars training, higher lr ───────────────
     (
         name            = "data_mass",
         active         =["data", "mass"],
+        early_stopping_start = 100
+
     ),
 
-    # ── Example 3: all-vars training, higher lr ───────────────
+    # ── Example 4: all-vars training, higher lr ───────────────
     (
         name            = "data_deriv",
         active         =["data", "firstderiv"],
-    ),
-    # ── Example 3: all-vars training, higher lr ───────────────
+        early_stopping_start = 100
+
+        ),
+    # ── Example 5: all-vars training, higher lr ───────────────
     (
         name            = "data_neg",
         active         =["data", "negativity"],
-    ),
-    # ── Example 3: all-vars training, higher lr ───────────────
+        early_stopping_start = 100
+
+        ),
+    # ── Example 6: all-vars training, higher lr ───────────────
     (
         name            = "data_period",
         active         =["data", "periodicity"],
-    ),
-    # ── Example 3: all-vars training, higher lr ───────────────
+        early_stopping_start = 100
+
+        ),
+    # ── Example 7: all-vars training, higher lr ───────────────
     (
         name            = "data_zm",
         active         =["data", "zero_mean"],
-    ),
+        early_stopping_start = 100
+
+        ),
 ]
 end

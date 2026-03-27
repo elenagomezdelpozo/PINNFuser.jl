@@ -1,3 +1,4 @@
+__precompile__(false)  # Add this here
 module LibInfuser
 
 include("PINN_Infuser.jl")

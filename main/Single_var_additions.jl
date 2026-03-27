@@ -9,6 +9,7 @@ using SciMLSensitivity
 include("../src/Lib.jl")
 using .LibInfuser
 
+ENV["CONFIG_TYPE"] = "single"
 include("../src/Parameters.jl")
 using .ParametersMod: parameters
 
@@ -35,12 +36,11 @@ for i in parameters.vars
         early_stopping = true,
         plotting = parameters.plotting
     )
-    jldsave("trainings/pinn_model_$(name)_$(i).jld2"; 
+    jldsave("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_model_$(name)_$(i).jld2"; 
             trained_p = trained_p, 
             trained_st = trained_st, 
             losses = losses,
             nn_history = nn_history,
             )
     @info "Model saved successfully to pinn_model_$(name)_$(i).jld2"
-    LibInfuser.Plots_f(name, i)
 end

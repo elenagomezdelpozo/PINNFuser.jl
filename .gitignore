@@ -4,3 +4,4 @@ Manifest.toml
 Project.toml
 examples/ElenasTry/.DS_Store
 .history/*
+logs/*

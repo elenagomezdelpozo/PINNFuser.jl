@@ -9,7 +9,7 @@ using .ParametersMod: parameters
 export Plots_f
 
 function Plots_f(name, i)
-    data = load("trainings/pinn_model_$(name)_$(i).jld2")
+    data = load("../trainings/pinn_model_$(name)_$(i).jld2")
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
@@ -101,7 +101,7 @@ function Plots_f(name, i)
         title = "Equation $(i)",
         size = (900, 800)
     )
-    savefig(p1, "figures/$(name)_var$(i).png")
+    savefig(p1, "../figures/$(name)_var$(i).png")
 
     # PLOTING LOSS
     n_epochs = length(losses)
@@ -116,7 +116,7 @@ function Plots_f(name, i)
         markersize = 3,
         legend = false)
     
-    savefig(p2, "figures/$(name)_var$(i)_loss.png")
+    savefig(p2, "../figures/$(name)_var$(i)_loss.png")
 
     # PLOTTING NN HISTORY
     tsteps = range(0.0, parameters.τ , length = parameters.num_of_samples_per_cycle)
@@ -129,7 +129,7 @@ function Plots_f(name, i)
         lw = 2,
         title = "NN History for Equation $(i)",
     )
-    savefig(p3, "figures/$(name)_var$(i)_nn.png")
+    savefig(p3, "../figures/$(name)_var$(i)_nn.png")
 
 end #function
 end # module

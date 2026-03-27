@@ -1,3 +1,4 @@
+__precompile__(false)  # Add this here
 module ModelSuportMod
 
 export Valve, Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a

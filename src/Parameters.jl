@@ -1,16 +1,29 @@
+__precompile__(false) 
 module ParametersMod
 
 using DelimitedFiles
-include("Configs.jl")
+
+config_type = get(ENV, "CONFIG_TYPE", "all")
+
+if config_type == "single"
+    include("Configs_single_vars.jl")
+else
+    include("Configs_all_vars.jl")
+end
 using .ConfigsMod: configs
 
 export parameters
+
 i = parse(Int, ARGS[1])
 
 changeable = (
-    name = configs[i].name          
-    mode = configs[i].mode  
-    active = configs[i].active
+
+    working_on = "hpc", # "hpc" or "local"
+
+    name = configs[i].name,          
+    active = configs[i].active,
+    early_stopping_start = configs[i].early_stopping_start,
+
     vars = [1,2,3,4,5,6],
     nn_vars = [1],
     n_neurons_per_layer = 10,
@@ -19,7 +32,6 @@ changeable = (
     nn_output_weight = 1.0,
     iterations = 1000,
     initialisation = 1e-3,
-    early_stopping_start = 10,
     plot_every = 1,
     plotting = false
 )
@@ -51,7 +63,11 @@ tsteps = range(29.0, 30.0, length = num_of_samples) # for training
 
 Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.ode_params
 
-loaded_data = readdlm("/Applications/Desktop/CODE/PINNFuser.jl/data/original_data_2Ch.txt")
+if changeable.working_on == "hpc"
+    loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/original_data_2Ch.txt")
+elseif working_on == "local"
+    changeable.loaded_data = readdlm("../data/original_data_2Ch.txt")
+end
 
 extrap_original_data = Array{Float64}(loaded_data)[
     1:Int(floor(independent.extrapolation_tspan[2] * independent.num_of_samples_per_cycle)), :
@@ -115,6 +131,6 @@ dependent = (
     config = config
 )
 
-parameters = merge(configuration, changeable, plot_params, independent, dependent)
+parameters = merge(changeable, plot_params, independent, dependent)
 
 end # module
