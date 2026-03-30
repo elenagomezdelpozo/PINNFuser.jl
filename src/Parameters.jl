@@ -3,11 +3,13 @@ module ParametersMod
 
 using DelimitedFiles
 
-config_type = get(ENV, "CONFIG_TYPE", "all")
+config_type = get(ENV, "CONFIG_TYPE", "single")
 
 if config_type == "single"
     include("Configs_single_vars.jl")
-else
+elseif config_type == "couples"
+    include("Configs_couples_vars.jl")
+elseif config_type == "all"
     include("Configs_all_vars.jl")
 end
 using .ConfigsMod: configs
@@ -23,7 +25,8 @@ changeable = (
     name = configs[i].name,          
     active = configs[i].active,
     early_stopping_start = configs[i].early_stopping_start,
-
+    training_vars = configs[i].training_vars,
+    
     vars = [1,2,3,4,5,6],
     nn_vars = [1],
     n_neurons_per_layer = 10,
@@ -33,7 +36,6 @@ changeable = (
     iterations = 1000,
     initialisation = 1e-3,
     plot_every = 1,
-    plotting = false
 )
 
 independent = (
@@ -65,8 +67,10 @@ Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.od
 
 if changeable.working_on == "hpc"
     loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/original_data_2Ch.txt")
-elseif working_on == "local"
+    plotting = false
+elseif changeable.working_on == "local"
     changeable.loaded_data = readdlm("../data/original_data_2Ch.txt")
+    plotting = true
 end
 
 extrap_original_data = Array{Float64}(loaded_data)[
@@ -110,9 +114,9 @@ plot_params = (
     ]
 )
 dependent = (
+    plotting = plotting,
     num_of_samples = num_of_samples,
     tsteps = tsteps,
-
     Rmv = Rmv,
     Zao = Zao,
     Rs = Rs,

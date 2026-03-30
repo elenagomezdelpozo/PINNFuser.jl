@@ -6,8 +6,8 @@
 #SBATCH --mem=1GB
 #SBATCH -A plgsanomodeling-cpu
 #SBATCH -p plgrid
-#SBATCH --output=logs/experiment_single_%a.out
-#SBATCH --error=logs/experiment_single_%a.err
+#SBATCH --output=logs/experiment_single_fixmistake_%a.out
+#SBATCH --error=logs/experiment_single_fixmistake_%a.err
 #SBATCH --array=1-7
 
 #Load necessary modules (e.g., for GCC, MPI, etc.)
