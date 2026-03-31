@@ -34,7 +34,12 @@ trained_p, trained_st, losses, nn_history = LibInfuser.PINN_Infuser_f(
     early_stopping = true,
     plotting = true
 )
-jldsave("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_model_$(name)_all.jld2"; 
+if parameters.working_on == "local"
+    savepath = "../trainings/pinn_model_$(name)_all.jld2"
+elseif parameters.working_on == "hpc"
+    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_model_$(name)_all.jld2"
+end
+jldsave(savepath; 
         trained_p = trained_p, 
         trained_st = trained_st, 
         losses = losses,

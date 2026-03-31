@@ -6,13 +6,13 @@ using DelimitedFiles
 
 config_type = length(ARGS) > 0 ? ARGS[2] : "single_data"
 if config_type == "single_data"
-    include("Configs_single_vars_data.jl")
+    include("configurations/Configs_single_vars_data.jl")
 elseif config_type == "single_deriv"
-    include("Configs_single_vars_deriv.jl")
+    include("configurations/Configs_single_vars_deriv.jl")
 elseif config_type == "all_data"
-    include("Configs_all_vars_data.jl")
+    include("configurations/Configs_all_vars_data.jl")
 elseif config_type == "all_deriv"
-    include("Configs_all_vars_deriv.jl")
+    include("configurations/Configs_all_vars_deriv.jl")
 end
 using .ConfigsMod: configs
 
@@ -23,7 +23,7 @@ i = parse(Int, ARGS[1])
 
 changeable = (
 
-    working_on = "hpc", # "hpc" or "local"
+    working_on = "hpc", # CHANGE "hpc" or "local"
 
     name = configs[i].name,          
     active = configs[i].active,
