@@ -8,7 +8,7 @@
 #SBATCH -p plgrid
 #SBATCH --output=logs/experiment_single_deriv_%a.out
 #SBATCH --error=logs/experiment_single_deriv_%a.err
-#SBATCH --array=1-7
+#SBATCH --array=1-6
 
 #Load necessary modules (e.g., for GCC, MPI, etc.)
 module load julia
