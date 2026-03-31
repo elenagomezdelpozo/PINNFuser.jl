@@ -9,7 +9,6 @@ using SciMLSensitivity
 include("../src/Lib.jl")
 using .LibInfuser
 
-ENV["CONFIG_TYPE"] = "all"
 include("../src/Parameters.jl")
 using .ParametersMod: parameters
 

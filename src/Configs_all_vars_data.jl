@@ -3,8 +3,7 @@ module ConfigsMod
 export configs
 
 configs = [
-
-    # ── Example 1: single-var training, only data loss ──────
+    # loss 1 data only
     (
         name            = "data",
         active         =["data"],
@@ -12,8 +11,7 @@ configs = [
         training_vars = [1,2,3,4,5,6]
 
     ),
-
-    # ── Example 2: single-var, data + physics losses ─────────
+    # loss 2 data and physics
     (
         name            = "data_phy",
         active         =["data", "physics"],
@@ -21,16 +19,22 @@ configs = [
         training_vars = [1,2,3,4,5,6]
 
     ),
-
-    # ── Example 3: all-vars training, higher lr ───────────────
+    # loss 3 data and mass conservation
     (
         name            = "data_mass",
         active         =["data", "mass"],
         early_stopping_start = 100,
         training_vars = [1,2,3,4,5,6]
     ),
+    # loss 4 data and negativity
+    (
+        name            = "data_neg",
+        active         =["data", "negativity"],
+        early_stopping_start = 100,
+        training_vars = [1,2,3,4,5,6]
 
-    # ── Example 4: all-vars training, higher lr ───────────────
+    ),
+    # loss 5 data and first derivative
     (
         name            = "data_deriv",
         active         =["data", "firstderiv"],
@@ -38,15 +42,7 @@ configs = [
         training_vars = [1,2,3,4,5,6]
 
         ),
-    # ── Example 5: all-vars training, higher lr ───────────────
-    (
-        name            = "data_neg",
-        active         =["data", "negativity"],
-        early_stopping_start = 100,
-        training_vars = [1,2,3,4,5,6]
-
-        ),
-    # ── Example 6: all-vars training, higher lr ───────────────
+    # loss 6 data and periodicity
     (
         name            = "data_period",
         active         =["data", "periodicity"],
@@ -54,7 +50,7 @@ configs = [
         training_vars = [1,2,3,4,5,6]
 
         ),
-    # ── Example 7: all-vars training, higher lr ───────────────
+    # loss 7 data and zero mean
     (
         name            = "data_zm",
         active         =["data", "zero_mean"],

@@ -3,18 +3,21 @@ module ParametersMod
 
 using DelimitedFiles
 
-config_type = get(ENV, "CONFIG_TYPE", "single")
 
-if config_type == "single"
-    include("Configs_single_vars.jl")
-elseif config_type == "couples"
-    include("Configs_couples_vars.jl")
-elseif config_type == "all"
-    include("Configs_all_vars.jl")
+config_type = length(ARGS) > 0 ? ARGS[2] : "single_data"
+if config_type == "single_data"
+    include("Configs_single_vars_data.jl")
+elseif config_type == "single_deriv"
+    include("Configs_single_vars_deriv.jl")
+elseif config_type == "all_data"
+    include("Configs_all_vars_data.jl")
+elseif config_type == "all_deriv"
+    include("Configs_all_vars_deriv.jl")
 end
 using .ConfigsMod: configs
 
 export parameters
+@info "Using configuration type: $(config_type)"
 
 i = parse(Int, ARGS[1])
 
