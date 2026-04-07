@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=05:00:00
 #SBATCH --mem=1GB
-#SBATCH -A plgsanomodeling-cpu
+#SBATCH -A plgsanomodeling2-cpu
 #SBATCH -p plgrid
 #SBATCH --output=logs/experiment_all_deriv_%a.out
 #SBATCH --error=logs/experiment_all_deriv_%a.err

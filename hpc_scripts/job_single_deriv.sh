@@ -2,15 +2,15 @@
 #SBATCH -J test
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=09:00:00
+#SBATCH --time=10:00:00
 #SBATCH --mem=1GB
-#SBATCH -A plgsanomodeling-cpu
+#SBATCH -A plgsanomodeling2-cpu
 #SBATCH -p plgrid
-#SBATCH --output=logs/experiment_single_deriv_%a.out
-#SBATCH --error=logs/experiment_single_deriv_%a.err
+#SBATCH --output=logs/experiment_single_deriv_456_%a.out
+#SBATCH --error=logs/experiment_single_deriv_456_%a.err
 #SBATCH --array=1-6
 
-#Load necessary modules (e.g., for GCC, MPI, etc.)
+#Load necessary modules (e.g., for GCC, MPI, etc .)
 module load julia
 
 cd $HOME/CV_0D_models/PINNFuser.jl

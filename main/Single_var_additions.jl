@@ -15,7 +15,7 @@ using .ParametersMod: parameters
 name = parameters.name
 ode_problem = ODEProblem(LibInfuser.NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
 
-for i in parameters.vars
+for i in parameters.training_vars
     @info "Training variable(s) $(i) with loss(es) $(name)"
     nn_vars = [i]
     NN = Lux.Chain(
@@ -38,7 +38,7 @@ for i in parameters.vars
     if parameters.working_on == "local"
         savepath = "../trainings/pinn_model_$(name)_all.jld2"
     elseif parameters.working_on == "hpc"
-        savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_model_$(name)_all.jld2"
+        savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_model_$(name)_$(i).jld2"
     end
     jldsave(savepath; 
             trained_p = trained_p, 
