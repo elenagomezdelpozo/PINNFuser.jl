@@ -1,163 +1,190 @@
-module PINNInfuser
+__precompile__(false)  # Add this here
+module PINNInfuserMod
 
-using Lux, StableRNGs, Optimization, OptimizationOptimisers, ComponentArrays, LinearAlgebra
-using OrdinaryDiffEq, Statistics, ForwardDiff
-using Printf
+using StableRNGs, ComponentArrays, LinearAlgebra
+using Optimization, OptimizationOptimisers
+using SciMLBase, SciMLSensitivity
+using Statistics
+using ForwardDiff
+using OrdinaryDiffEq: Vern7
+using Lux
+using Plots
 
-export PINN_Infuser
+include("Losses.jl")
+using .LossesMod
 
-"""
+include("Parameters.jl")
+using .ParametersMod: parameters
 
-Trains a Physics-Informed Neural Network (PINN) by minimizing a composite loss function
-that includes both data fidelity and physical law adherence.
+export PINN_Infuser_f
 
-# Arguments
-- `ode_problem::SciMLBase.ODEProblem`: The ODE problem defining the physical laws.
-- `nn::Lux.Chain`: The Lux neural network model to be trained.
-- `training_steps::AbstractRange`: The time steps at which to evaluate the solution and calculate loss function.
-- `target_data::Array{Float64}`: The ground truth data for training.
-
-# Keyword Arguments
-- `early_stopping::Bool = true`: Whether to enable early stopping based on loss convergence.
-- `nn_output_weight::Float64 = 0.1`: The weight factor for the NN infusion in ODE.
-- `physics_weight::Float64 = 1.0`: The weight of the physics-based loss component.
-- `optimizer = OptimizationOptimisers.Adam`: The optimization algorithm to use.
-- `learning_rate::Float64 = 0.001`: The learning rate for the optimizer.
-- `reltol::Float64 = 1e-6`: The relative tolerance for the ODE solver.
-- `abstol::Float64 = 1e-6`: The absolute tolerance for the ODE solver.
-- `dtmax = Inf`: The maximum time step for the ODE solver.
-- `iters::Int = 1000`: The number of training iterations.
-- `rng::StableRNG` = StableRNG(5958): A random number generator for reproducibility.
-- `loss_logfile::String = "training_logs/loss_history.txt"`: File path to log loss history.
-- `data_vars::Union{Nothing,Vector{Int}} = nothing`: Indices of variables to include in data loss.
-- `physics_vars::Union{Nothing,Vector{Int}} = nothing`: Indices of variables to include in physics loss.
-
-# Returns
-- `Tuple{Any, Any}`: The trained parameters of the neural network.
-"""
-function PINN_Infuser(
+function PINN_Infuser_f(
     ode_problem::SciMLBase.ODEProblem,
+    ode_mat_base,
+    ode_params,
     nn::Lux.Chain,
     training_steps::AbstractRange,
     target_data::AbstractMatrix{Float64};
-    early_stopping::Bool = true,
-    nn_output_weight::Float64 = 0.1,
-    physics_weight::Float64 = 1.0,
+    nn_vars::Union{Nothing,Vector{Int}} = nothing,
     optimizer = ADAM,
-    learning_rate::Float64 = 0.001,
     reltol::Float64 = 1e-6,
     abstol::Float64 = 1e-6,
-    dtmax = Inf,
-    iters::Int = 1000,
-    rng::StableRNG = StableRNG(5958),
-    loss_logfile::String = "training_logs/loss_history.txt",
-    data_vars::Union{Nothing,Vector{Int}} = nothing,
-    physics_vars::Union{Nothing,Vector{Int}} = nothing,
-)::Tuple{Any,Any}
-    nvars = length(ode_problem.u0)
+    early_stopping::Bool = true,
+    plotting::Bool = true,
+    rng::StableRNG = StableRNG(5958)
+)::Tuple{Any,Any, Any, Any}
 
     U_MEAN = vec(mean(target_data, dims = 1))
     U_STD = vec(std(target_data, dims = 1)) .+ 1e-6
-    target_data = (target_data .- U_MEAN') ./ U_STD'
-
-    data_vars === nothing && (data_vars = collect(1:nvars))
-    physics_vars === nothing && (physics_vars = collect(1:nvars))
+    data_norm = (target_data .- U_MEAN') ./ U_STD'
 
     p_NN, st = Lux.setup(rng, nn)
-    p_NN = 0 * ComponentVector{Float64}(p_NN)
+    p_NN = parameters.initialisation * ComponentVector{Float64}(p_NN)
 
-    ode_f = ode_problem.f
-
-    function pinn_ode!(du, u, p_NN, t)
+    function pinn_ode!(du, u, p_NN, t) # modifies the original ODE by adding nn 
         nn_output = nn(u, p_NN, st)[1]
-        ode_f(du, u, nothing, t)
-        du .*= 1 .+ nn_output_weight .* tanh.(nn_output)
+        ode_problem.f(du, u, ode_params, t)
+        for (k, i) in enumerate(nn_vars)
+            du[i] += parameters.nn_output_weight * nn_output[k]  
+        end    
     end
 
-    function predict(p_NN)
-        temp_prob = ODEProblem(
-            (du, u, p_NN, t) -> pinn_ode!(du, u, p_NN, t),
+    function predict(p_NN) # solving the modified ODE, outputs the new 10 states 
+        prob = ODEProblem(
+            (du, u, p, t) -> pinn_ode!(du, u, p, t), 
             ode_problem.u0,
             ode_problem.tspan,
             p_NN,
         )
         temp_sol = solve(
-            temp_prob,
+            prob, 
             Vern7(),
-            saveat = training_steps,
-            dtmax = dtmax,
-            reltol = reltol,
-            abstol = abstol,
+            saveat=training_steps,
+            dtmax=parameters.dtmax,
+            reltol=reltol,
+            abstol=abstol
         )
-        return temp_sol
+        return temp_sol  
     end
 
-    function data_loss(pred, data, data_vars)
-        pred_mat = hcat(pred.u...)'
-        pred_normalized = (pred_mat .- U_MEAN') ./ U_STD'
-        return sum(mean(abs2, pred_normalized[:, j] .- data[:, j]) for j in data_vars)
+    function compute_nn_contributions(u_mat, p_NN) #logs of the nn contributions to each variable at each time step
+        nn_out = nn(reshape(u_mat', length(u_mat[1,:]), :), p_NN, st)[1]  # (n_outputs × time)
+        return (parameters.nn_output_weight .* nn_out)'  # (time × n_outputs)
     end
 
-    function physics_loss(pred, p_NN, physics_vars)
-        pred_mat = hcat(pred.u...)'
-        l = 0.0
-        for (i, t) in enumerate(training_steps)
-            u = pred_mat[i, :]
-            du = similar(u)
-            pinn_ode!(du, u, p_NN, t)
-            f_base = similar(u)
-            ode_f(f_base, u, nothing, t)
-            l += mean(abs2.(du[physics_vars] .- f_base[physics_vars]))
-        end
-        return l / length(training_steps)
+    function build_ctx(p)
+        sol       = predict(p)              # predicted plots with nn additions based on loss reduction
+        sol_arr   = Array(sol)'             # (time × vars)
+        pred_mat  = sol_arr
+        pred_norm = (sol_arr .- U_MEAN') ./ U_STD'
+        return (
+            sol            = sol,
+            pred_mat       = pred_mat,
+            pred_norm      = pred_norm,
+            data_norm      = data_norm,
+            target_data    = target_data,
+            training_steps = training_steps,
+            ode_params     = ode_params,
+            ode_problem    = ode_problem,
+            nn_vars        = nn_vars,
+            p_NN           = p,
+            nn             = nn,
+            st             = st,
+        )
     end
-
-    function loss(p_NN)
-        pred = predict(p_NN)
-        L_data = data_loss(pred, target_data, data_vars)
-        L_phys = physics_loss(pred, p_NN, physics_vars)
-        return L_data + physics_weight * L_phys
-    end
-
+    
     adtype = Optimization.AutoForwardDiff()
-    optf = Optimization.OptimizationFunction((x, p) -> loss(x), adtype)
+    optf = Optimization.OptimizationFunction(
+        (x, p) ->   begin
+                        ctx = build_ctx(x) # this builds the current prediction, parameters, state and so on
+                        loss(parameters.active, ctx, parameters.config).total # this calculates loss with the Losses module
+                    end,
+        adtype
+    )
+
     optprob = Optimization.OptimizationProblem(optf, p_NN)
     losses = Float64[]
+    nn_history = Vector{Matrix{Float64}}()
 
-    callback = function (p_NN, l)
-        push!(losses, l)
-        println("Iteration $(length(losses)): Loss = $(losses[end])")
+    callback = function (state, l)
+        u_curr = hasproperty(state, :u) ? state.u : state
 
-        if early_stopping &&
-           length(losses) > 100 &&
-           losses[end] - maximum(losses[(end-10):(end-1)]) > 0
-            println("Early stopping at iteration $(length(losses)) with loss $(losses[end])")
-            return true
+        if parameters.working_on == "hpc"
+            ctx = build_ctx(state) # Check if 'state' or 'current_p' is intended here
+        elseif parameters.working_on == "local"
+            ctx = build_ctx(u_curr)
         else
-            return false
+            @info "specify hpc or not"
+            return false # Avoid falling through
         end
+
+        result = loss(parameters.active, ctx, parameters.config)  
+        push!(losses, result.total)  
+        log_str = "Iter $(length(losses))"
+        for k in keys(result)
+            log_str *= " | $(k): $(round(result[k], sigdigits=6))"
+        end
+        println(log_str)
+        flush(stdout)
+        push!(nn_history, compute_nn_contributions(ctx.pred_mat, u_curr))
+
+        # ── Live prediction vs data plot ──────────────────────────────────
+        iter = length(losses)
+        if plotting && iter % parameters.plot_every == 0
+            t    = collect(training_steps)
+            subplots = [
+                begin
+                    p = plot(t, ctx.pred_mat[:, j];
+                        label     = "PINN",
+                        lw        = 2,
+                        xlabel    = "t",
+                        ylims     = parameters.ylims[j]
+                    )
+                    plot!(p, t, ode_mat_base[:, j];   # ← add this
+                        label = "ODE",
+                        lw    = 2,
+                        ls    = :dot,
+                    )
+                    plot!(p, t, target_data[:, j];
+                        label = "Data",
+                        lw    = 2,
+                        ls    = :dash,
+                    )
+                    p
+                end
+                for j in 1:length(parameters.vars)
+            ]
+
+            fig = plot(subplots...;
+                layout     = (3, 2),
+                plot_title = "Iter $iter  |  loss = $(round(result.total, sigdigits=5))",
+                size       = (360 * 2, 280 * 3),
+            )
+            display(fig)
+        end
+        # ── Early stopping ────────────────────────────────────────────────
+        if early_stopping && length(losses) > parameters.early_stopping_start # let it train for at least x iters
+            recent_min = minimum(losses[(end-5):(end-1)]) # window of improvement is last 5 iterations
+            not_improving = recent_min + 1e-1 < losses[end] # not improving much in the window (less than 1e-5 better)
+            recent_max = maximum(losses[(end-5):(end-1)]) # window of improvement is last 5 iterations
+            increasing    = losses[end] > recent_max # or when the loss is increasing compared to the last 5 iters
+
+            if not_improving || increasing
+                @info "Early stopping at iteration $(length(losses)) with loss $(losses[end])"
+                return true
+            end
+        end
+        return false
+
     end
 
     trained_params = Optimization.solve(
         optprob,
-        optimizer(learning_rate),
+        optimizer(parameters.lr),
         callback = callback,
-        maxiters = iters,
+        maxiters = parameters.iterations,
     )
 
-    folder = dirname(loss_logfile)
-    if folder != "" && !isdir(folder)
-        println("Creating directory for training logs: $folder")
-        mkpath(folder)
-    end
-
-    open(loss_logfile, "w") do io
-        for (i, L) in enumerate(losses)
-            @printf(io, "%d %.12f\n", i, L)
-        end
-    end
-
-    return (trained_params.u, st)
-end
-
-end # module PINNInfuser
+    return (trained_params.u, st, losses, nn_history) 
+end # function
+end # module
