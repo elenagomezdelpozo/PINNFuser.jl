@@ -20,6 +20,7 @@ export PINN_Infuser_f
 
 function PINN_Infuser_f(
     ode_problem::SciMLBase.ODEProblem,
+    ode_mat_base,
     ode_params,
     nn::Lux.Chain,
     training_steps::AbstractRange,
@@ -111,7 +112,7 @@ function PINN_Infuser_f(
         if parameters.working_on == "hpc"
             ctx = build_ctx(state) # Check if 'state' or 'current_p' is intended here
         elseif parameters.working_on == "local"
-            ctx = build_ctx(current_p)
+            ctx = build_ctx(u_curr)
         else
             @info "specify hpc or not"
             return false # Avoid falling through
@@ -138,6 +139,11 @@ function PINN_Infuser_f(
                         lw        = 2,
                         xlabel    = "t",
                         ylims     = parameters.ylims[j]
+                    )
+                    plot!(p, t, ode_mat_base[:, j];   # ← add this
+                        label = "ODE",
+                        lw    = 2,
+                        ls    = :dot,
                     )
                     plot!(p, t, target_data[:, j];
                         label = "Data",

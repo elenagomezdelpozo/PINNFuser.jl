@@ -1,10 +1,20 @@
-__precompile__(false) 
 module ParametersMod
 
 using DelimitedFiles
 
+working_on = "local" # CHANGE "hpc" or "local"
 
-config_type = length(ARGS) > 0 ? ARGS[2] : "single_data"
+if working_on == "hpc"
+    i = parse(Int, ARGS[1])
+    config_type = length(ARGS) > 1 ? ARGS[2] : "single_data"
+elseif working_on == "local"
+    i = 4
+    name = "data"
+    active = ["data"]
+    config_type = "all_data"
+    early_stopping_start = 10
+end
+
 if config_type == "single_data"
     include("configurations/Configs_single_vars_data.jl")
 elseif config_type == "single_deriv"
@@ -19,19 +29,8 @@ using .ConfigsMod: configs
 export parameters
 @info "Using configuration type: $(config_type)"
 
-i = parse(Int, ARGS[1])
-
-changeable = (
-
-    working_on = "hpc", # CHANGE "hpc" or "local"
-
-    name = configs[i].name,          
-    active = configs[i].active,
-    early_stopping_start = configs[i].early_stopping_start,
-    training_vars = configs[i].training_vars,
-    
+training = (
     vars = [1,2,3,4,5,6],
-    nn_vars = [1],
     n_neurons_per_layer = 10,
     lr = 1e-4,
     dtmax = 1e-2,
@@ -39,13 +38,29 @@ changeable = (
     iterations = 1000,
     initialisation = 1e-3,
     plot_every = 1,
+    num_of_cycles = 1,
 )
+
+if working_on == "hpc"
+    changeable = (
+        name = configs[i].name,          
+        active = configs[i].active,
+        early_stopping_start = configs[i].early_stopping_start,
+        training_vars = configs[i].training_vars,
+    )
+elseif working_on == "local"
+    changeable = (
+        name = name,
+        i = i,
+        active = active,
+        early_stopping_start = early_stopping_start,
+        plot_time = (23.0, 30.0)
+    )
+end
 
 independent = (
     tspan = (0.0, 30.0),
     num_of_samples_per_cycle = 150,
-    num_of_cycles = 1,
-
     τ = 1.0,
     Eshift = 0.0,
 
@@ -62,18 +77,18 @@ independent = (
 
 )
 
-num_of_samples = independent.num_of_samples_per_cycle * independent.num_of_cycles
-
-tsteps = range(29.0, 30.0, length = num_of_samples) # for training
-
 Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.ode_params
 
-if changeable.working_on == "hpc"
+if working_on == "hpc"
     loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/original_data_2Ch.txt")
     plotting = false
-elseif changeable.working_on == "local"
-    changeable.loaded_data = readdlm("../data/original_data_2Ch.txt")
+    num_of_samples = Int(independent.num_of_samples_per_cycle * training.num_of_cycles)
+    tsteps = range(independent.extrapolation_tspan[2]-independent.τ * independent.num_of_cycles, independent.extrapolation_tspan[2], length = num_of_samples) # for training
+elseif working_on == "local"
+    loaded_data = readdlm("data/original_data_2Ch.txt")
     plotting = true
+    num_of_samples = Int(independent.num_of_samples_per_cycle * (changeable.plot_time[2] - changeable.plot_time[1])) # for plotting
+    tsteps = range(changeable.plot_time[1], changeable.plot_time[2], length = num_of_samples) # for plotting
 end
 
 extrap_original_data = Array{Float64}(loaded_data)[
@@ -97,8 +112,6 @@ config = (
     periodic_weight = 1.0
 )
 plot_params = (
-    plot_time = (0,7),
-
     labels = [
         "pLV",
         "pLA",
@@ -109,11 +122,11 @@ plot_params = (
     ],
     ylims = [
         (0, 130),
-        (4, 10),
-        (40, 140),
+        (4, 8),
+        (60, 140),
         (22,24),
-        (30, 150),
-        (20, 70)
+        (30, 120),
+        (30, 60)
     ]
 )
 dependent = (
@@ -138,6 +151,6 @@ dependent = (
     config = config
 )
 
-parameters = merge(changeable, plot_params, independent, dependent)
+parameters = merge((working_on = working_on,), changeable, plot_params, independent, dependent, training)
 
 end # module

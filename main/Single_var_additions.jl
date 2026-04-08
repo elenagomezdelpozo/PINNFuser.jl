@@ -36,7 +36,7 @@ for i in parameters.training_vars
         plotting = parameters.plotting
     )
     if parameters.working_on == "local"
-        savepath = "../trainings/pinn_model_$(name)_all.jld2"
+        savepath = "trainings/pinn_model_$(name)_all.jld2"
     elseif parameters.working_on == "hpc"
         savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_model_$(name)_$(i).jld2"
     end

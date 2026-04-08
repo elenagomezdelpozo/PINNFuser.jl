@@ -8,14 +8,29 @@ using .ParametersMod: parameters
 
 export Plots_f
 
+using DelimitedFiles
+using JLD2          # ← add this — provides load()
+using Lux
+using StableRNGs
+using OrdinaryDiffEq
+using Plots
+using ComponentArrays
+
 function Plots_f(name, i)
-    data = load("../trainings/pinn_model_$(name)_$(i).jld2")
+    data = load("trainings/$(name)")
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
     nn_history = data["nn_history"]
-
+    
     # Reconstruct clean NamedTuple parameter structure (avoids ReshapedArray bug)
+    NN = Lux.Chain(
+        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
+        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
+        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
+        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
+        Lux.Dense(parameters.n_neurons_per_layer, length(parameters.nn_vars)),
+    )
     rng = StableRNG(5958)
     trained_p, _ = Lux.setup(rng, NN)
     trained_p = ComponentVector{Float64}(trained_p)
@@ -23,7 +38,7 @@ function Plots_f(name, i)
     @info "Model loaded."
 
     # ── Settings (must match training) ───────────────────────────────────────
-    nn_vars = parameters.vars[i]   # match what was used in training
+    nn_vars = parameters.nn_vars   # match what was used in training
 
     # ── PINN ODE (exactly mirrors pinn_ode! from training) ────────────────
     function pinn_ode!(du, u, p, t)
@@ -33,11 +48,11 @@ function Plots_f(name, i)
             du[i] += parameters.nn_output_weight * nn_output[k]
         end
     end
-
+    
     # ── Solve ─────────────────────────────────────────────────────────────────
     pinn_problem = ODEProblem(
         (du, u, p, t) -> pinn_ode!(du, u, p, t),
-        ode_problem.u0,
+        parameters.u0,
         parameters.plot_time,
         trained_p,
     )
@@ -46,18 +61,17 @@ function Plots_f(name, i)
     pinn_pred = Matrix(Array(solved_pinn)')   # (time × vars)
 
     # ── Baseline ODE (no NN) ──────────────────────────────────────────────────
-    ode_prob_base = ODEProblem(LibInfuser.NIK_2ch!, ode_problem.u0, tspan, ode_params)
+    ode_prob_base = ODEProblem(ModelMod.NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
     ode_sol       = solve(ode_prob_base, Vern7();
-        saveat = parameters.plot_time, reltol = 1e-6, abstol = 1e-6)
+        saveat = parameters.tsteps, reltol = 1e-6, abstol = 1e-6)
     ode_pred = Matrix(Array(ode_sol)')
 
     # ── Data ──────────────────────────────────────────────────────────────────
-    new_tsteps   = range(parameters.plot_time[1], parameters.plot_time[2], length = (parameters.plot_time[2] - parameters.plot_time[1]) * parameters.num_of_samples_per_cycle)
-    original_data = extrap_original_data[15001:(1500 + parameters.plot_time[2] * parameters.num_of_samples_per_cycle), :]
+    original_data = parameters.extrap_original_data[1501:1500 + parameters.num_of_samples, :]
 
     # ── Mask to plot only t >= 2 (skip transient) ────────────────────────────
-    mask         = new_tsteps .>= 2.0
-    time_to_plot = new_tsteps[mask]
+    mask         = parameters.tsteps .>= 2.0
+    time_to_plot = parameters.tsteps[mask]
     data_to_plot = original_data[mask, :]
     ode_to_plot  = ode_pred[mask, :]
     pinn_to_plot = pinn_pred[mask, :]
@@ -101,7 +115,7 @@ function Plots_f(name, i)
         title = "Equation $(i)",
         size = (900, 800)
     )
-    savefig(p1, "../figures/$(name)_var$(i).png")
+    savefig(p1, "figures/$(name)_var$(i).png")
 
     # PLOTING LOSS
     n_epochs = length(losses)
@@ -116,12 +130,12 @@ function Plots_f(name, i)
         markersize = 3,
         legend = false)
     
-    savefig(p2, "../figures/$(name)_var$(i)_loss.png")
+    savefig(p2, "figures/$(name)_var$(i)_loss.png")
 
     # PLOTTING NN HISTORY
     tsteps = range(0.0, parameters.τ , length = parameters.num_of_samples_per_cycle)
     p3 = plot(
-        tsteps,
+        parameters.tsteps,
         nn_history[end],
         label = "NN History",
         xlabel = "time",
@@ -129,7 +143,7 @@ function Plots_f(name, i)
         lw = 2,
         title = "NN History for Equation $(i)",
     )
-    savefig(p3, "../figures/$(name)_var$(i)_nn.png")
+    savefig(p3, "figures/$(name)_var$(i)_nn.png")
 
 end #function
 end # module
