@@ -27,7 +27,7 @@
 <!-- scp -->
 <variable initial_value="0.52" name="Rscp" public_interface="out" units="UnitR"> </variable>
 <!-- svn -->
-<variable initial_value="0.075" name="Rsvn" public_interface="out" units="UnitR"> </variable>
+<variable initial_value="0.19" name="Rsvn" public_interface="out" units="UnitR"> </variable>
 <variable initial_value="20.5" name="Csvn" public_interface="out" units="UnitC"/>
 <variable initial_value="0." name="P0svn" public_interface="out" units="UnitP"/>
 

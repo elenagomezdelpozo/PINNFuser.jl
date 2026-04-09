@@ -54,7 +54,7 @@ elseif working_on == "local"
         i = i,
         active = active,
         early_stopping_start = early_stopping_start,
-        plot_time = (23.0, 30.0)
+        plot_time = (25.0, 30.0)
     )
 end
 
@@ -72,9 +72,6 @@ independent = (
 
                 # Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la 
     ode_params = [0.013, 0.002, 1.292, 0.07, 1.023, 10.9, 5.2, 0.0709, 0.2, 0.06],
-
-    extrapolation_tspan = (0.0, 30.0),
-
 )
 
 Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.ode_params
@@ -83,18 +80,20 @@ if working_on == "hpc"
     loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/original_data_2Ch.txt")
     plotting = false
     num_of_samples = Int(independent.num_of_samples_per_cycle * training.num_of_cycles)
-    tsteps = range(independent.extrapolation_tspan[2]-independent.τ * independent.num_of_cycles, independent.extrapolation_tspan[2], length = num_of_samples) # for training
+    tsteps = range(independent.tspan[2]-independent.τ * independent.num_of_cycles, independent.tspan[2], length = num_of_samples) # for training
 elseif working_on == "local"
-    loaded_data = readdlm("data/original_data_2Ch.txt")
-    plotting = true
-    num_of_samples = Int(independent.num_of_samples_per_cycle * (changeable.plot_time[2] - changeable.plot_time[1])) # for plotting
-    tsteps = range(changeable.plot_time[1], changeable.plot_time[2], length = num_of_samples) # for plotting
+    loaded_data = readdlm("data_one_patient/original_data_2Ch.txt")
+    plotting = true 
+    num_of_samples = Int(independent.num_of_samples_per_cycle * (independent.tspan[2] - independent.tspan[1])) # for training
+    num_of_samples_plot = Int(independent.num_of_samples_per_cycle * (changeable.plot_time[2] - changeable.plot_time[1])) # for plotting
+    tsteps = range(independent.tspan[1], independent.tspan[2], length = num_of_samples) # for training
+    time_to_plot = range(changeable.plot_time[1], changeable.plot_time[2], length = num_of_samples_plot) # for plotting
 end
 
 extrap_original_data = Array{Float64}(loaded_data)[
-    1:Int(floor(independent.extrapolation_tspan[2] * independent.num_of_samples_per_cycle)), :
+    1:Int(floor(independent.tspan[2] * independent.num_of_samples_per_cycle)), :
 ]
-original_data = extrap_original_data[1501:1500 + num_of_samples, :]
+original_data = extrap_original_data[1501:1500 + num_of_samples_plot, :]
 
 config = (
     data_vars = [1, 2, 3, 4, 5, 6],
@@ -111,6 +110,7 @@ config = (
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1.0
 )
+
 plot_params = (
     labels = [
         "pLV",
@@ -122,17 +122,19 @@ plot_params = (
     ],
     ylims = [
         (0, 130),
-        (4, 8),
+        (4, 10),
         (60, 140),
         (22,24),
-        (30, 120),
-        (30, 60)
+        (0, 150),
+        (0, 100)
     ]
 )
 dependent = (
     plotting = plotting,
     num_of_samples = num_of_samples,
     tsteps = tsteps,
+    num_of_samples_plot = num_of_samples_plot,
+    time_to_plot = time_to_plot,
     Rmv = Rmv,
     Zao = Zao,
     Rs = Rs,
