@@ -8,10 +8,9 @@ if working_on == "hpc"
     i = parse(Int, ARGS[1])
     config_type = length(ARGS) > 1 ? ARGS[2] : "single_data"
 elseif working_on == "local"
-    i = 4
-    name = "data"
-    active = ["data"]
-    config_type = "all_data"
+    name = "deriv_zero_mean"
+    active = []
+    config_type = "single_data"
     early_stopping_start = 10
 end
 
@@ -51,7 +50,6 @@ if working_on == "hpc"
 elseif working_on == "local"
     changeable = (
         name = name,
-        i = i,
         active = active,
         early_stopping_start = early_stopping_start,
         plot_time = (23.0, 30.0)
