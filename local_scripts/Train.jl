@@ -20,8 +20,15 @@ ode_sol_base  = solve(ode_problem, Vern7(); saveat = parameters.tsteps,
                       dtmax = parameters.dtmax, reltol = 1e-6, abstol = 1e-6)
 ode_mat_base  = Array(ode_sol_base)'
 
-@info "Training variable(s) $(i) with loss(es) $(name)"
-nn_vars = parameters.vars
+if i == 7 # all variables
+    nn_vars = parameters.vars
+    @info "Training on all variables with loss(es) $(parameters.active)"
+elseif i == 1:6 # some variables
+    nn_vars = [parameters.vars[i]]
+    @info "Training variable(s) $(i) with loss(es) $(parameters.active)"
+else
+    error("Invalid variable index. Please choose an index between 1 and 7.")
+end
 n = parameters.n_neurons_per_layer
 NN = Lux.Chain(
     Lux.Dense(n, n, tanh),
@@ -41,7 +48,7 @@ trained_p, trained_st, losses, nn_history = LibInfuser.PINN_Infuser_f(
     early_stopping = true,
     plotting = parameters.plotting
 )
-jldsave( "trainings/pinn_model_$(name)_all.jld2"; 
+jldsave( "trainings/pinn_model_$(name)_$(i).jld2"; 
         trained_p = trained_p, 
         trained_st = trained_st, 
         losses = losses,

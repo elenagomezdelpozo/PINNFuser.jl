@@ -8,25 +8,11 @@ if working_on == "hpc"
     i = parse(Int, ARGS[1])
     config_type = length(ARGS) > 1 ? ARGS[2] : "single_data"
 elseif working_on == "local"
-    name = "deriv_zero_mean"
-    active = []
-    config_type = "single_data"
+    name = "data_deriv"
+    active = ["data", "firstderiv"] # "data, physics, mass, zero_mean, negativity, firstderiv, periodicity" 
+    i = 7 # 1:6 for single variable, 7 for all variables
     early_stopping_start = 10
 end
-
-if config_type == "single_data"
-    include("configurations/Configs_single_vars_data.jl")
-elseif config_type == "single_deriv"
-    include("configurations/Configs_single_vars_deriv.jl")
-elseif config_type == "all_data"
-    include("configurations/Configs_all_vars_data.jl")
-elseif config_type == "all_deriv"
-    include("configurations/Configs_all_vars_deriv.jl")
-end
-using .ConfigsMod: configs
-
-export parameters
-@info "Using configuration type: $(config_type)"
 
 training = (
     vars = [1,2,3,4,5,6],
@@ -41,6 +27,20 @@ training = (
 )
 
 if working_on == "hpc"
+    if config_type == "single_data"
+        include("configurations/Configs_single_vars_data.jl")
+    elseif config_type == "single_deriv"
+        include("configurations/Configs_single_vars_deriv.jl")
+    elseif config_type == "all_data"
+        include("configurations/Configs_all_vars_data.jl")
+    elseif config_type == "all_deriv"
+        include("configurations/Configs_all_vars_deriv.jl")
+    end
+    using .ConfigsMod: configs
+
+    export parameters
+    @info "Using configuration type: $(config_type)"
+
     changeable = (
         name = configs[i].name,          
         active = configs[i].active,
@@ -51,6 +51,7 @@ elseif working_on == "local"
     changeable = (
         name = name,
         active = active,
+        i = i,
         early_stopping_start = early_stopping_start,
         plot_time = (23.0, 30.0)
     )
@@ -124,7 +125,7 @@ plot_params = (
         (60, 140),
         (22,24),
         (30, 120),
-        (30, 60)
+        (30, 70)
     ]
 )
 dependent = (

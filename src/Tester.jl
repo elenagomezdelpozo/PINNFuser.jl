@@ -1,4 +1,4 @@
-module PlotsMod
+module TestMod
 
 include("Model.jl")
 using .ModelMod: NIK_2ch!
@@ -6,7 +6,7 @@ using .ModelMod: NIK_2ch!
 include("Parameters.jl")
 using .ParametersMod: parameters
 
-export Plots_f
+export Tester_f, generate_patients
 
 using DelimitedFiles
 using JLD2          # ← add this — provides load()
@@ -15,14 +15,40 @@ using StableRNGs
 using OrdinaryDiffEq
 using Plots
 using ComponentArrays
+using Random
 
-function Plots_f(name, i)
-    data = load("trainings/$(name).jld2")
+function generate_patients(n_samples::Int; seed::Int)
+    rng = Random.seed!(seed)
+    patients = Matrix{Float64}(undef, n_samples, 10)
+    loguniform(a, b) = exp(rand(rng) * (log(b) - log(a)) + log(a))
+
+    for i in 1:n_samples
+        Rmv  = loguniform(0.005, 0.05)
+        Zao  = loguniform(0.001, 0.01)
+        Rs   = loguniform(0.5, 2.5)
+        Rsv  = loguniform(0.02, 0.15)
+        Csa  = loguniform(0.5, 2.5)
+        Csv  = loguniform(5.0, 20.0)
+        Emin_lv = loguniform(0.03, 0.15)
+        Emax_lv = Emin_lv * rand(rng, 10.0:1.0:40.0)
+        if Emax_lv < 1.5; Emax_lv = 1.5; end  # hard floor for systolic function
+        Emin_la = loguniform(0.03, 0.12)
+        Emax_la = Emin_la * rand(rng, 3.0:0.5:10.0)
+        if Emax_lv <= Emax_la; Emax_lv = 1.2 * Emax_la; end  # LV must dominate
+
+        patients[i, :] = [Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la]
+    end
+    return patients
+end
+
+function Tester_f(name, new_ode_parameters)
+    i = parameters.i
+    data = load("trainings/$(name)_$(i).jld2")
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
     nn_history = data["nn_history"]
-    @info "Model loaded from \"trainings/$(name).jld2\""
+    @info "Model loaded from \"trainings/$(name)_$(i).jld2\""
 
     if i == 7
         nn_vars = parameters.vars  
@@ -49,7 +75,7 @@ function Plots_f(name, i)
     # ── PINN ODE (exactly mirrors pinn_ode! from training) ────────────────
     function pinn_ode!(du, u, trained_p, t)
         nn_output = NN(u, trained_p, trained_st)[1]   # plain Vector, no reshape — matches training
-        ModelMod.NIK_2ch!(du, u, parameters.ode_params, t)
+        ModelMod.NIK_2ch!(du, u, new_ode_parameters, t)
         for (k, i) in enumerate(nn_vars)
             du[i] += parameters.nn_output_weight * nn_output[k]
         end
@@ -67,7 +93,7 @@ function Plots_f(name, i)
     pinn_pred = Matrix(Array(solved_pinn)')   # (time × vars)
 
     # ── Baseline ODE (no NN) ──────────────────────────────────────────────────
-    ode_prob_base = ODEProblem(ModelMod.NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
+    ode_prob_base = ODEProblem(ModelMod.NIK_2ch!, parameters.u0, parameters.tspan, new_ode_parameters)
     ode_sol       = solve(ode_prob_base, Vern7();
         saveat = parameters.tsteps, reltol = 1e-6, abstol = 1e-6)
     ode_pred = Matrix(Array(ode_sol)')
@@ -83,7 +109,7 @@ function Plots_f(name, i)
     pinn_to_plot = pinn_pred[mask, :]
 
     # ── Plot ──────────────────────────────────────────────────────────────────
-    @info "Plotting results for variable $(name)..."
+    @info "Plotting results for testing model \"$(name)\""
     plots = [
         begin
             p = plot(
@@ -91,8 +117,6 @@ function Plots_f(name, i)
                 pinn_to_plot[:, i],
                 label = "PINN",
                 xlabel = "time",
-                ylabel = parameters.labels[i],
-                ylims = parameters.ylims[i],
                 lw = 2
             )
             plot!(
@@ -100,14 +124,6 @@ function Plots_f(name, i)
                 time_to_plot[:],
                 ode_to_plot[:, i],
                 label = "ODE",
-                lw = 2,
-                ls = :dash
-            )
-            plot!(
-                p,
-                time_to_plot[:],
-                data_to_plot[:, i],
-                label = "Data",
                 lw = 2,
                 ls = :dash
             )
@@ -121,38 +137,7 @@ function Plots_f(name, i)
         title = "Equation $(i)",
         size = (900, 800)
     )
-    savefig(p1, "figures/$(name).png")
-
-    # PLOTING LOSS
-    n_epochs = length(losses)
-    epochs = 1:n_epochs
-
-    p2 = plot(epochs, losses,
-        xlabel = "Epoch",
-        ylabel = "Loss",
-        title = "Training Loss over Epochs for Equation $(i)",
-        lw = 2,
-        marker = :circle,
-        markersize = 3,
-        legend = false)
-    
-    savefig(p2, "figures/$(name)_loss.png")
-    if i == 7
-        @info "No NN plot"
-    else
-        # PLOTTING NN HISTORY
-        tsteps = range(0.0, parameters.τ , length = size(nn_history[end], 1))
-        p3 = plot(
-            tsteps,
-            nn_history[end],
-            label = "NN History",
-            xlabel = "time",
-            ylabel = parameters.labels[i],
-            lw = 2,
-            title = "NN History for Equation $(i)",
-        )
-        savefig(p3, "figures/$(name)_nn.png")
-    end
+    savefig(p1, "figures/testing_$(name).png")
 
 end #function
 end # module
