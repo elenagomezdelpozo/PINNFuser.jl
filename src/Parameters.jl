@@ -8,8 +8,8 @@ if working_on == "hpc"
     i = parse(Int, ARGS[1])
     config_type = length(ARGS) > 1 ? ARGS[2] : "single_data"
 elseif working_on == "local"
-    name = "data_deriv"
-    active = ["data", "firstderiv"] # "data, physics, mass, zero_mean, negativity, firstderiv, periodicity" 
+    name = "all_patients"
+    active = ["data", "negativity", "mass", "periodicity", "zero_mean"] # "data, physics, mass, zero_mean, negativity, firstderiv, periodicity" 
     i = 7 # 1:6 for single variable, 7 for all variables
     early_stopping_start = 10
 end
@@ -26,39 +26,16 @@ training = (
     num_of_cycles = 1,
 )
 
-if working_on == "hpc"
-    if config_type == "single_data"
-        include("configurations/Configs_single_vars_data.jl")
-    elseif config_type == "single_deriv"
-        include("configurations/Configs_single_vars_deriv.jl")
-    elseif config_type == "all_data"
-        include("configurations/Configs_all_vars_data.jl")
-    elseif config_type == "all_deriv"
-        include("configurations/Configs_all_vars_deriv.jl")
-    end
-    using .ConfigsMod: configs
-
-    export parameters
-    @info "Using configuration type: $(config_type)"
-
-    changeable = (
-        name = configs[i].name,          
-        active = configs[i].active,
-        early_stopping_start = configs[i].early_stopping_start,
-        training_vars = configs[i].training_vars,
-    )
-elseif working_on == "local"
-    changeable = (
-        name = name,
-        active = active,
-        i = i,
-        early_stopping_start = early_stopping_start,
-        plot_time = (23.0, 30.0)
-    )
-end
+changeable = (
+    name = name,
+    active = active,
+    i = i,
+    early_stopping_start = early_stopping_start,
+    plot_time = (23.0, 30.0)
+)
 
 independent = (
-    tspan = (0.0, 30.0),
+    tspan = (0.0, 20.0),
     num_of_samples_per_cycle = 150,
     τ = 1.0,
     Eshift = 0.0,
@@ -74,26 +51,28 @@ independent = (
 
     extrapolation_tspan = (0.0, 30.0),
 
+    number_of_patients = 10
+
 )
 
 Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.ode_params
 
 if working_on == "hpc"
-    loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/original_data_2Ch.txt")
+    loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/target_data.txt")
     plotting = false
     num_of_samples = Int(independent.num_of_samples_per_cycle * training.num_of_cycles)
     tsteps = range(independent.extrapolation_tspan[2]-independent.τ * independent.num_of_cycles, independent.extrapolation_tspan[2], length = num_of_samples) # for training
 elseif working_on == "local"
-    loaded_data = readdlm("data/original_data_2Ch.txt")
+    loaded_data = readdlm("data/target_data.txt")
     plotting = true
-    num_of_samples = Int(independent.num_of_samples_per_cycle * (changeable.plot_time[2] - changeable.plot_time[1])) # for plotting
-    tsteps = range(changeable.plot_time[1], changeable.plot_time[2], length = num_of_samples) # for plotting
+    num_of_samples = Int(independent.num_of_samples_per_cycle * (independent.tspan[2] - independent.tspan[1])) 
+    tsteps = range(independent.tspan[1], independent.tspan[2], length = num_of_samples)
 end
 
 extrap_original_data = Array{Float64}(loaded_data)[
     1:Int(floor(independent.extrapolation_tspan[2] * independent.num_of_samples_per_cycle)), :
 ]
-original_data = extrap_original_data[1501:1500 + num_of_samples, :]
+original_data = extrap_original_data[1001:1000 + num_of_samples, :]
 
 config = (
     data_vars = [1, 2, 3, 4, 5, 6],
@@ -117,7 +96,11 @@ plot_params = (
         "psa",
         "psv",
         "Vlv",
-        "Vla"
+        "Vla",
+        "Qav",
+        "Qmv",
+        "Qs",
+        "Qsv"
     ],
     ylims = [
         (0, 130),

@@ -12,11 +12,13 @@ using .LibInfuser
 include("../src/Parameters.jl")
 using .ParametersMod: parameters
 
-name = parameters.name
-ode_problem = ODEProblem(LibInfuser.NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
+include("../data/Creating_starting_ODE.jl")
+using .PatientsMod: generate_patients_odes
 
-@info "Training all variables with loss(es) $(name)"
-nn_vars = parameters.training_vars
+patients_params, patients_odes = generate_patients_odes(parameters.number_of_patients)
+name = parameters.name
+
+nn_vars = parameters.vars
 NN = Lux.Chain(
     Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
     Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
@@ -24,9 +26,10 @@ NN = Lux.Chain(
     Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
     Lux.Dense(parameters.n_neurons_per_layer, length(nn_vars)),
 )
-trained_p, trained_st, losses, nn_history = LibInfuser.PINN_Infuser_f( 
-    ode_problem,
-    parameters.ode_params,
+
+trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f( 
+    patients_odes,
+    patients_params,
     NN,
     parameters.tsteps,
     parameters.original_data;
@@ -34,10 +37,11 @@ trained_p, trained_st, losses, nn_history = LibInfuser.PINN_Infuser_f(
     early_stopping = true,
     plotting = true
 )
+
 if parameters.working_on == "local"
-    savepath = "trainings/pinn_model_$(name)_all.jld2"
+    savepath = "trainings/pinn_$(name).jld2"
 elseif parameters.working_on == "hpc"
-    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_model_$(name)_all.jld2"
+    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(name).jld2"
 end
 jldsave(savepath; 
         trained_p = trained_p, 
@@ -45,4 +49,4 @@ jldsave(savepath;
         losses = losses,
         nn_history = nn_history,
         )
-@info "Model saved successfully to pinn_model_$(name)_all.jld2"
+@info "Model saved successfully to pinn_$(name).jld2"
