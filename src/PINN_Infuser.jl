@@ -64,7 +64,10 @@ function PINN_Infuser_f(
             reltol=reltol,
             abstol=abstol
         )
-        return temp_sol  
+        if temp_sol.retcode != ReturnCode.Success
+            @warn "ODE solve failed: $(temp_sol.retcode)"
+        end
+        return temp_sol
     end
 
     function compute_nn_contributions(u_mat, p_NN) #logs of the nn contributions to each variable at each time step
@@ -164,9 +167,9 @@ function PINN_Infuser_f(
         end
         # ── Early stopping ────────────────────────────────────────────────
         if early_stopping && (length(losses) > parameters.early_stopping_start) # let it train for at least x iters
-            recent_min = minimum(losses[(end-3):(end-1)]) # window of improvement is last 5 iterations
-            not_improving = recent_min + 1e-1 < losses[end] # not improving much in the window (less than 1e-5 better)
-            recent_max = maximum(losses[(end-3):(end-1)]) # window of improvement is last 5 iterations
+            recent_min = minimum(losses[(end-5):(end-1)]) # window of improvement is last 5 iterations
+            not_improving = recent_min + 1e-4 < losses[end] # not improving much in the window (less than 1e-5 better)
+            recent_max = maximum(losses[(end-5):(end-1)]) # window of improvement is last 5 iterations
             increasing    = losses[end] > recent_max # or when the loss is increasing compared to the last 5 iters
  
             if not_improving || increasing
