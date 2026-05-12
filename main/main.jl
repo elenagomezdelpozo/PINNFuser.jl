@@ -4,7 +4,7 @@ using Optimization, OptimizationOptimisers
 using Optim, Measures, BenchmarkTools
 using DelimitedFiles
 using Plots, LinearAlgebra, JLD2
-using SciMLSensitivity 
+using SciMLSensitivity
 
 include("../src/Lib.jl")
 using .LibInfuser
@@ -20,20 +20,20 @@ name = parameters.name
 
 nn_vars = parameters.vars
 NN = Lux.Chain(
-    Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
+    Lux.Dense(length(parameters.u0), parameters.n_neurons_per_layer, tanh),
     Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
     Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
     Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
     Lux.Dense(parameters.n_neurons_per_layer, length(nn_vars)),
 )
 
-trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f( 
+trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
     patients_odes,
     patients_params,
     NN,
     parameters.tsteps,
     parameters.original_data;
-    nn_vars = nn_vars, 
+    nn_vars = nn_vars,
     early_stopping = true,
     plotting = true
 )
@@ -43,10 +43,9 @@ if parameters.working_on == "local"
 elseif parameters.working_on == "hpc"
     savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(name).jld2"
 end
-jldsave(savepath; 
-        trained_p = trained_p, 
-        trained_st = trained_st, 
-        losses = losses,
-        nn_history = nn_history,
+jldsave(savepath;
+        trained_p = trained_p,
+        trained_st = trained_st,
+        losses = losses
         )
 @info "Model saved successfully to pinn_$(name).jld2"

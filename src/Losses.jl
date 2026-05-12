@@ -4,6 +4,7 @@ module LossesMod
 using ComponentArrays, LinearAlgebra
 using SciMLBase
 using Statistics
+using Zygote  
 
 export loss
 
@@ -15,19 +16,20 @@ function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physic
     dt = training_steps[2] - training_steps[1]
     n  = size(pred_mat, 1)
     l  = zero(eltype(pred_mat))
-    du_scale = vec(std(diff(pred_mat, dims=1) ./ dt, dims=1)) .+ 1e-6
-
+    du_scale = Zygote.ignore() do
+        vec(std(diff(Array(pred_mat), dims=1) ./ dt, dims=1)) .+ 1e-6
+    end
     for i in 2:n-1
-        t = training_steps[i]
-        u = pred_mat[i, :]
-        du_ode = zeros(eltype(u), length(u))
-        ode_problem.f(du_ode, u, ode_params, t)
+        t  = training_steps[i]
+        u  = pred_mat[i, :]
+        du_ode = Zygote.ignore() do
+            Vector{Float64}(ode_problem.f(Vector{Float64}(u), ode_params, t))
+        end
         du_num = (pred_mat[i+1, :] .- pred_mat[i-1, :]) ./ (2 * dt)
         for j in physics_vars
             l += abs2((du_num[j] - du_ode[j]) / du_scale[j])
         end
     end
-
     return physics_weight * l / (n - 2)
 end
 
@@ -86,43 +88,34 @@ function periodicity_loss(pred_mat, periodic_weight, periodic_vars)
 end
 
 function loss(active::Vector{String}, ctx, config)
-
-    REGISTRY = Dict{String, Function}(
-        "data"        => () -> data_loss(ctx.pred_norm, ctx.data_norm,
-                                         config.data_vars, config.data_weight),
-        "physics"     => () -> physics_loss(ctx.pred_mat, ctx.training_steps,
-                                            ctx.ode_params, config.physics_vars,
-                                            config.physics_weight, ctx.ode_problem),
-        "mass"        => () -> mass_conservation_loss(ctx.pred_mat,
-                                                      ctx.training_steps,
-                                                      config.mass_conservation_weight),
-        "zero_mean"   => () -> zero_mean_loss(ctx.pred_mat, ctx.p_NN, ctx.nn, ctx.st,
-                                              ctx.nn_vars, config.zm_vars, config.zm_weight),
-        "negativity"  => () -> negativity_loss(ctx.pred_mat, config.neg_vars,
-                                               config.neg_weight),
-        "firstderiv"  => () -> firstderiv_loss(ctx.pred_mat, ctx.target_data,
-                                               config.firstderiv_vars,
-                                               ctx.training_steps, config.deriv_weight),
-        "periodicity" => () -> periodicity_loss(ctx.pred_mat, config.periodic_weight, config.periodic_vars),
-    )
-
-    unknown = setdiff(active, keys(REGISTRY))
-    isempty(unknown) || @warn "Unknown loss keys ignored: $unknown"
-
-    # evaluate only the requested losses
-    results = Dict{Symbol, Any}()
     total = zero(eltype(ctx.pred_mat))
-
     for key in active
-        haskey(REGISTRY, key) || continue
-        val = REGISTRY[key]()
-        results[Symbol(key)] = val
-        total += val
+        val = if key == "data"   
+                data_loss(ctx.pred_norm, ctx.data_norm, 
+                            config.data_vars, config.data_weight)   
+                elseif key == "physics"
+                    physics_loss(ctx.pred_mat, ctx.training_steps,
+                                ctx.ode_params, config.physics_vars,
+                                config.physics_weight, ctx.ode_problem)
+                elseif key == "mass"
+                    mass_conservation_loss(ctx.pred_mat, ctx.training_steps,
+                                        config.mass_conservation_weight)
+                elseif key == "zero_mean"
+                    zero_mean_loss(ctx.pred_mat, ctx.p_NN, ctx.nn, ctx.st,
+                                ctx.nn_vars, config.zm_vars, config.zm_weight)
+                elseif key == "negativity"
+                    negativity_loss(ctx.pred_mat, config.neg_vars, config.neg_weight)
+                elseif key == "firstderiv"
+                    firstderiv_loss(ctx.pred_mat, ctx.target_data,
+                                    config.firstderiv_vars,
+                                    ctx.training_steps, config.deriv_weight)
+                elseif key == "periodicity"
+                    periodicity_loss(ctx.pred_mat, config.periodic_weight,
+                                    config.periodic_vars)
+        else; nothing; end
+        isnothing(val) || (total += val)
     end
-    
-    total = (total === nothing) ? zero(Float64) : total
-    results[:total] = total
-    return NamedTuple(results)
-end # function
+    return (total = total,)   # only field Zygote needs to trace
+end
 
 end # module

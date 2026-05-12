@@ -18,7 +18,7 @@ using .PINNInfuserMod: PINN_Infuser_f
 
 using .LossesMod
 
-using .ModelMod: NIK_2ch!
+using .ModelMod: NIK_2ch, NIK_2ch!
 
 using .PlotsMod: Plots_f
 

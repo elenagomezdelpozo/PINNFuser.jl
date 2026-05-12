@@ -4,15 +4,9 @@ module ModelSuportMod
 export Valve, Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a
 
 function Valve(R, deltaP, open)
-    dq = 0.0
-    if (open) > 0.0
-        dq = deltaP / R
-    else
-        dq = 0.0
-    end
-    return dq
-
+    return (deltaP / R) * (0.5 + 0.5 * tanh(open * 1e3))
 end
+
 function Elastance_v(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ, Eshift)
     τₑₛ = τₑₛ * τ
 
@@ -47,22 +41,16 @@ end
 
 function Elastance_a(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ)
     tₙ = rem(t, τ)
-    if τₑₛ < tₙ <= τₑₚ
-        eₚ = 1 - cos(2 * pi * (tₙ - τₑₛ) / (τₑₛ - τₑₚ))
-    else
-        eₚ = 0.0
-    end
+    in_phase = (tₙ > τₑₛ) & (tₙ <= τₑₚ)   # boolean multiply instead of if
+    eₚ = in_phase * (1 - cos(2 * pi * (tₙ - τₑₛ) / (τₑₛ - τₑₚ)))
     return Eₘᵢₙ + 0.5 * (Eₘₐₓ - Eₘᵢₙ) * eₚ
 end
 
 function DShiElastance_a(t, Eₘᵢₙ, Eₘₐₓ, τ, τₑₛ, τₑₚ)
     tₙ = rem(t, τ)
-    if τₑₛ < tₙ <= τₑₚ
-        deₚ = sin((2 * pi / (τₑₛ - τₑₚ)) * (tₙ - τₑₛ)) * (2 * pi / (τₑₛ - τₑₚ))
-        return 0.5 * (Eₘₐₓ - Eₘᵢₙ) * deₚ
-    else
-        return 0.0
-    end
+    in_phase = (tₙ > τₑₛ) & (tₙ <= τₑₚ)
+    deₚ = in_phase * sin((2 * pi / (τₑₛ - τₑₚ)) * (tₙ - τₑₛ)) * (2 * pi / (τₑₛ - τₑₚ))
+    return 0.5 * (Eₘₐₓ - Eₘᵢₙ) * deₚ
 end
 
 end

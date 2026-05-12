@@ -1,7 +1,7 @@
 module PlotsMod
 
 include("Model.jl")
-using .ModelMod: NIK_2ch!
+using .ModelMod: NIK_2ch
 
 include("Parameters.jl")
 using .ParametersMod: parameters

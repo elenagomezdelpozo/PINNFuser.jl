@@ -1,6 +1,7 @@
 module ParametersMod
 
 using DelimitedFiles
+using StaticArrays
 
 working_on = "local" # CHANGE "hpc" or "local"
 
@@ -8,16 +9,16 @@ if working_on == "hpc"
     i = parse(Int, ARGS[1])
     config_type = length(ARGS) > 1 ? ARGS[2] : "single_data"
 elseif working_on == "local"
-    name = "all_patients"
-    active = ["data", "negativity", "mass", "periodicity", "zero_mean"] # "data, physics, mass, zero_mean, negativity, firstderiv, periodicity" 
+    name = "all_patients_data"
+    active = ["data"] # "data, physics, mass, zero_mean, negativity, firstderiv, periodicity" 
     i = 7 # 1:6 for single variable, 7 for all variables
-    early_stopping_start = 10
+    early_stopping_start = 20
 end
 
 training = (
     vars = [1,2,3,4,5,6],
     n_neurons_per_layer = 10,
-    lr = 1e-4,
+    lr = 1e-3,
     dtmax = 1e-2,
     nn_output_weight = 1.0,
     iterations = 1000,
@@ -41,7 +42,7 @@ independent = (
     Eshift = 0.0,
 
         # pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv 
-    u0 = [8.0, 8.0, 30.0, 21.5, 130.0, 75.0, 0.0, 0.0, 0.0, 0.0],
+    u0 =  [8.0, 8.0, 30.0, 21.5, 130.0, 75.0, 0.0, 0.0, 0.0, 0.0],
 
               # τ, τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la 
     t_params = [1.0, 0.3, 0.45, 0.92, 0.09],  
@@ -76,18 +77,18 @@ original_data = extrap_original_data[1001:1000 + num_of_samples, :]
 
 config = (
     data_vars = [1, 2, 3, 4, 5, 6],
-    data_weight = 1.0,
+    data_weight = 1e-2,
     physics_vars = [1, 2, 3],
-    physics_weight = 1.0,
+    physics_weight = 1e-5,
     mass_conservation_weight = 1.0,
     zm_vars = [1, 2, 3, 4, 5, 6],
-    zm_weight = 1.0,
+    zm_weight = 1e-5,
     neg_vars = [5, 6],
     neg_weight = 10.0,
     firstderiv_vars = [1, 2, 3, 4, 5, 6],
-    deriv_weight = 1e-4,
+    deriv_weight = 1e-5,
     periodic_vars = [1,2,3,4,5,6],
-    periodic_weight = 1.0
+    periodic_weight = 1e-5
 )
 plot_params = (
     labels = [
