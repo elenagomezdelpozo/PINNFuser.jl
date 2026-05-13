@@ -6,31 +6,25 @@ using .ModelMod: NIK_2ch
 include("Parameters.jl")
 using .ParametersMod: parameters
 
-export Plots_f
+export Plots_model, Plot_ODE, Plot_all_patients
 
 using DelimitedFiles
-using JLD2          # ← add this — provides load()
+using JLD2          
 using Lux
 using StableRNGs
 using OrdinaryDiffEq
 using Plots
 using ComponentArrays
 
-function Plots_f(name, i)
-    data = load("trainings/$(name)_$(i).jld2")
+function Plot_model(name)
+    data = load("trainings/$(name).jld2")
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
-    nn_history = data["nn_history"]
-    @info "Model loaded from \"trainings/$(name)_$(i).jld2\""
+    @info "Model loaded from \"trainings/$(name).jld2\""
     
-    if i == 7
-        nn_vars = parameters.vars  
-    elseif i in 1:6
-        nn_vars = [parameters.vars[i]]
-    else 
-        error("Invalid variable index: $(i). Must be 1-6 or 7 for all.")
-    end
+    nn_vars = parameters.vars  
+    
     @info "nn_vars: $(nn_vars)"
 
     # Reconstruct clean NamedTuple parameter structure (avoids ReshapedArray bug)
@@ -63,50 +57,42 @@ function Plots_f(name, i)
         trained_p,
     )
     solved_pinn = solve(pinn_problem, Vern7();
-        saveat = parameters.tsteps, dtmax = parameters.dtmax, reltol = 1e-6, abstol = 1e-6)
+        saveat = parameters.plot_time, dtmax = parameters.dtmax, reltol = 1e-6, abstol = 1e-6)
     pinn_pred = Matrix(Array(solved_pinn)')   # (time × vars)
 
     # ── Baseline ODE (no NN) ──────────────────────────────────────────────────
     ode_prob_base = ODEProblem(ModelMod.NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
     ode_sol       = solve(ode_prob_base, Vern7();
-        saveat = parameters.tsteps, reltol = 1e-6, abstol = 1e-6)
+        saveat = parameters.plot_time, reltol = 1e-6, abstol = 1e-6)
     ode_pred = Matrix(Array(ode_sol)')
 
     # ── Data ──────────────────────────────────────────────────────────────────
-    original_data = parameters.extrap_original_data[1501:1500 + parameters.num_of_samples, :]
-
-    # ── Mask to plot only t >= 2 (skip transient) ────────────────────────────
-    mask         = parameters.tsteps .>= (first(parameters.tsteps) + 3 * parameters.τ)
-    time_to_plot = parameters.tsteps[mask]
-    data_to_plot = original_data[mask, :]
-    ode_to_plot  = ode_pred[mask, :]
-    pinn_to_plot = pinn_pred[mask, :]
+    original_data = parameters.extrap_original_data[1501:1500 + length(parameters.plot_time), :]
 
     # ── Plot ──────────────────────────────────────────────────────────────────
     @info "Plotting results for variable $(name)..."
     plots = [
         begin
             p = plot(
-                time_to_plot[:],
-                pinn_to_plot[:, i],
+                parameters.plot_time[:],
+                pinn_pred[:, i],
                 label = "PINN",
                 xlabel = "time",
                 ylabel = parameters.labels[i],
-                ylims = parameters.ylims[i],
                 lw = 2
             )
             plot!(
                 p,
-                time_to_plot[:],
-                ode_to_plot[:, i],
+                parameters.plot_time[:],
+                ode_pred[:, i],
                 label = "ODE",
                 lw = 2,
                 ls = :dash
             )
             plot!(
                 p,
-                time_to_plot[:],
-                data_to_plot[:, i],
+                parameters.plot_time[:],
+                original_data[:, i],
                 label = "Data",
                 lw = 2,
                 ls = :dash
@@ -118,7 +104,6 @@ function Plots_f(name, i)
     p1 = plot(
         plots...,
         layout = (3, 2),
-        title = "Equation $(i)",
         size = (900, 800)
     )
     savefig(p1, "figures/$(name).png")
@@ -130,29 +115,73 @@ function Plots_f(name, i)
     p2 = plot(epochs, losses,
         xlabel = "Epoch",
         ylabel = "Loss",
-        title = "Training Loss over Epochs for Equation $(i)",
+        title = "Training Loss over Epochs for Equation",
         lw = 2,
         marker = :circle,
         markersize = 3,
         legend = false)
     
     savefig(p2, "figures/$(name)_loss.png")
-    if i == 7
-        @info "No NN plot"
-    else
-        # PLOTTING NN HISTORY
-        tsteps = range(0.0, parameters.τ , length = size(nn_history[end], 1))
-        p3 = plot(
-            tsteps,
-            nn_history[end],
-            label = "NN History",
-            xlabel = "time",
-            ylabel = parameters.labels[i],
-            lw = 2,
-            title = "NN History for Equation $(i)",
-        )
-        savefig(p3, "figures/$(name)_nn.png")
-    end
 
 end #function
+
+function Plot_ODE(name::String, ode_prob_base::ODEProblem)
+    ode_sol       = solve(ode_prob_base, Vern7();
+        saveat = parameters.plot_time, reltol = 1e-6, abstol = 1e-6)
+    ode_pred = Matrix(Array(ode_sol)')
+    
+    # ── Plot ──────────────────────────────────────────────────────────────────
+    @info "Plotting results for $(name)..."
+    plots = [
+        plot(
+            ode_sol.t[:],
+            ode_pred[:, i],
+            label = "ODE",
+            lw = 2
+        )
+        for i in 1:length(parameters.vars)
+    ]
+    p1 = plot(
+        plots...,
+        layout = (3, 2),
+        size = (900, 800)
+    )
+    savefig(p1, "data_all_patients/$(name).png")
+
+end #function
+
+function Plot_all_patients(patient_odes::Vector)
+    n_vars    = length(parameters.vars)
+    n_patients = length(patient_odes)
+    colors    = palette(:tab10, n_patients)
+
+    # One plot per variable, pre-initialized
+    var_plots = [plot(title = string(parameters.vars[i]), legend = :topright) for i in 1:n_vars]
+
+    for (i, ode_prob) in enumerate(patient_odes)
+        ode_sol  = solve(ode_prob, Vern7();
+            saveat = parameters.plot_time, reltol = 1e-6, abstol = 1e-6)
+        ode_pred = Matrix(Array(ode_sol)')
+
+        for j in 1:n_vars
+            plot!(
+                var_plots[j],
+                ode_sol.t[:],
+                ode_pred[:, j],
+                label = "patient $i",
+                lw    = 1.5,
+                color = colors[i]
+            )
+        end
+    end
+
+    p_final = plot(
+        var_plots...,
+        layout = (3, 2),
+        size   = (1200, 900)
+    )
+    savefig(p_final, "data_all_patients/all_patients.png")
+    @info "Saved all patients to data_all_patients/all_patients.png"
+end # function
+
 end # module
