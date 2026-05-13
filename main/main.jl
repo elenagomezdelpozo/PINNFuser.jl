@@ -31,21 +31,16 @@ trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
     patients_odes,
     patients_params,
     NN,
-    parameters.tsteps,
     parameters.original_data;
     nn_vars = nn_vars,
     early_stopping = true,
     plotting = true
 )
 
-if parameters.working_on == "local"
-    savepath = "trainings/pinn_$(name)_local.jld2"
-elseif parameters.working_on == "hpc"
-    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(name)_hpc.jld2"
-end
-jldsave(savepath;
+jldsave(savepath = parameters.savepath;
         trained_p = trained_p,
         trained_st = trained_st,
         losses = losses
         )
+
 @info "Model saved successfully to pinn_$(name).jld2"

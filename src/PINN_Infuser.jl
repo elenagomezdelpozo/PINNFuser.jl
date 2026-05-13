@@ -23,7 +23,6 @@ function PINN_Infuser_f(
     ode_problems::Vector{SciMLBase.ODEProblem},
     ode_params_list,
     nn::Lux.Chain,
-    training_steps::AbstractRange,
     target_data::AbstractMatrix{Float64};
     nn_vars::Union{Nothing,Vector{Int}} = nothing,
     optimizer = ADAM,
@@ -64,7 +63,7 @@ function PINN_Infuser_f(
 
             prob = ODEProblem(pinn_ode, u0_vec, ode_problem.tspan, p_NN)  # ← u0_vec not u0
             solve(prob, Vern7();
-                saveat   = training_steps,
+                saveat   = parameters.training_time,
                 dtmax    = parameters.dtmax,
                 reltol   = reltol,
                 abstol   = abstol,
@@ -84,7 +83,7 @@ function PINN_Infuser_f(
                 pred_norm      = pred_norm,
                 data_norm      = data_norm,
                 target_data    = target_data,
-                training_steps = training_steps,
+                training_steps = parameters.training_time,
                 ode_params     = ode_params,
                 ode_problem    = ode_problem,
                 nn_vars        = nn_vars,
