@@ -6,7 +6,7 @@ using .ModelMod: NIK_2ch
 include("Parameters.jl")
 using .ParametersMod: parameters
 
-export Plots_model, Plot_ODE, Plot_all_patients
+export Plot_model, Plot_ODE, Plot_all_patients
 
 using DelimitedFiles
 using JLD2          
@@ -156,7 +156,7 @@ function Plot_all_patients(patient_odes::Vector)
     colors    = palette(:tab10, n_patients)
 
     # One plot per variable, pre-initialized
-    var_plots = [plot(title = string(parameters.vars[i]), legend = :topright) for i in 1:n_vars]
+    var_plots = [plot(title = "Variable $(parameters.vars[i])", legend = :topright) for i in 1:n_vars]
 
     for (i, ode_prob) in enumerate(patient_odes)
         ode_sol  = solve(ode_prob, Vern7();
