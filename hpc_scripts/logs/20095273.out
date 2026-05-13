@@ -186,3 +186,9 @@ Iter 30 | avg_loss: 1.5193
 Iter 31 | avg_loss: 1.50913
   [forward] call=63 loss=computing...
   [forward] call=63 loss=1.4974
+  [forward] call=64 loss=computing...
+  [forward] call=64 loss=1.4974
+
+Iter 32 | avg_loss: 1.49744
+  [forward] call=65 loss=computing...
+  [forward] call=65 loss=1.4842
