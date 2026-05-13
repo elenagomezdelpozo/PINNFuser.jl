@@ -39,9 +39,9 @@ trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
 )
 
 if parameters.working_on == "local"
-    savepath = "trainings/pinn_$(name).jld2"
+    savepath = "trainings/pinn_$(name)_local.jld2"
 elseif parameters.working_on == "hpc"
-    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(name).jld2"
+    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(name)_hpc.jld2"
 end
 jldsave(savepath;
         trained_p = trained_p,
