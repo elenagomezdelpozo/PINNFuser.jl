@@ -1,0 +1,24 @@
+ gcccore/11.2.0 loaded.
+ zlib/1.2.11-gcccore-11.2.0 loaded.
+ binutils/2.37-gcccore-11.2.0 loaded.
+ gcc/11.2.0 loaded.
+ numactl/2.0.14-gcccore-11.2.0 loaded.
+ xz/5.2.5-gcccore-11.2.0 loaded.
+ libxml2/2.9.10-gcccore-11.2.0 loaded.
+ libpciaccess/0.16-gcccore-11.2.0 loaded.
+ hwloc/2.5.0-gcccore-11.2.0 loaded.
+ openssl/1.1 loaded.
+ libevent/2.1.12-gcccore-11.2.0 loaded.
+ ucx/1.11.2-gcccore-11.2.0 loaded.
+ libfabric/1.13.2-gcccore-11.2.0 loaded.
+ pmix/4.1.0-gcccore-11.2.0 loaded.
+ openmpi/4.1.1-gcc-11.2.0 loaded.
+ openblas/0.3.17-gcc-11.2.0 loaded.
+ flexiblas/3.0.4-gcc-11.2.0 loaded.
+ gompi/2021b loaded.
+ fftw/3.3.10-gompi-2021b loaded.
+ scalapack/2.1.0-gompi-2021b-fb loaded.
+ foss/2021b loaded.
+ julia/1.10.0-linux-x86_64 loaded.
+WARNING: Method definition setup(Optimisers.AbstractRule, ComponentArrays.ComponentArray{T, N, A, Axes} where Axes<:Tuple{Vararg{ComponentArrays.AbstractAxis{IdxMap} where IdxMap}} where A<:AbstractArray{T, N} where N where T) in module ComponentArraysOptimisersExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ComponentArrays/fwmmC/ext/ComponentArraysOptimisersExt.jl:7 overwritten in module LuxComponentArraysExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/5xfGO/ext/LuxComponentArraysExt.jl:19.
+ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
