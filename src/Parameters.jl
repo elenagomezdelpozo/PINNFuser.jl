@@ -6,7 +6,7 @@ using StaticArrays
 
 changeable = (
     working_on = "local", # CHANGE "hpc" or "local"
-    name = "all_patients_data&period",
+    name = "all_patients_data",
     active = ["data", "periodicity"], # "data, physics, mass, zero_mean, negativity, firstderiv, periodicity" 
     early_stopping_start = 20,
     range_to_plot = 5.0,
