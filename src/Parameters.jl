@@ -99,10 +99,10 @@ config = (
 )
 plot_params = (
     labels = [
-        "pLV",
-        "pLA",
-        "psa",
-        "psv",
+        "Plv",
+        "Pla",
+        "Psa",
+        "Psv",
         "Vlv",
         "Vla",
         "Qav",
