@@ -3,11 +3,32 @@ module ParametersMod
 using DelimitedFiles
 using StaticArrays
 
+working_on = "hpc" # CHANGE "hpc" or "local"
+if working_on == "hpc"
+    @info "Working on HPC. Make sure to change the paths in the code accordingly."
+    i = parse(Int, ARGS[1])
+elseif working_on == "local"
+    @info "Working on local. Make sure to change the paths in the code accordingly."
+    i = 1 # CHANGE THIS TO 1, 2, 3, 4, 5, 6 OR 7 TO TRAIN DIFFERENT MODELS
+end
 
-changeable = (
-    working_on = "local", # CHANGE "hpc" or "local"
-    name = "all_patients_data",
-    active = ["data", "periodicity"], # "data, physics, mass, zero_mean, negativity, firstderiv, periodicity" 
+actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
+names = [
+    "data",
+    "data&physics",
+    "data&mass",
+    "data&zero_mean",
+    "data&negativity",
+    "data&firstderiv",
+    "data&periodicity"
+]
+
+active = i == 1 ? [actives[1]] : [actives[1], actives[i]]
+
+changeable = ( 
+    working_on = working_on,
+    name = names[i],
+    active = active,
     early_stopping_start = 20,
     range_to_plot = 5.0,
     number_of_patients = 10
