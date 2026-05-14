@@ -3,7 +3,7 @@ module ParametersMod
 using DelimitedFiles
 using StaticArrays
 
-working_on = "hpc" # CHANGE "hpc" or "local"
+working_on = "local" # CHANGE "hpc" or "local"
 if working_on == "hpc"
     @info "Working on HPC. Make sure to change the paths in the code accordingly."
     i = parse(Int, ARGS[1])
@@ -117,6 +117,18 @@ plot_params = (
         (22,24),
         (30, 120),
         (30, 70)
+    ],
+    units = [
+        "mmHg",
+        "mmHg",
+        "mmHg",
+        "mmHg",
+        "mL",
+        "mL",
+        "mL/s",
+        "mL/s",
+        "mL/s",
+        "mL/s"
     ]
 )
 dependent = (

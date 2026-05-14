@@ -137,6 +137,9 @@ function Plot_ODE(name::String, ode_prob_base::ODEProblem)
             ode_sol.t[:],
             ode_pred[:, i],
             label = "ODE",
+            xlabel = "time",
+            ylabel = parameters.units[i],
+            title = parameters.labels[i],
             lw = 2
         )
         for i in 1:length(parameters.vars)
@@ -156,7 +159,7 @@ function Plot_all_patients(patient_odes::Vector)
     colors    = palette(:tab10, n_patients)
 
     # One plot per variable, pre-initialized
-    var_plots = [plot(title = "Variable $(parameters.vars[i])", legend = :topright) for i in 1:n_vars]
+    var_plots = [plot(title = "$(parameters.labels[i])", legend = :topright) for i in 1:n_vars]
 
     for (i, ode_prob) in enumerate(patient_odes)
         ode_sol  = solve(ode_prob, Vern7();
@@ -169,6 +172,8 @@ function Plot_all_patients(patient_odes::Vector)
                 ode_sol.t[:],
                 ode_pred[:, j],
                 label = "patient $i",
+                xlabel = "time",
+                ylabel = parameters.units[j],
                 lw    = 1.5,
                 color = colors[i]
             )
@@ -178,7 +183,7 @@ function Plot_all_patients(patient_odes::Vector)
     p_final = plot(
         var_plots...,
         layout = (3, 2),
-        size   = (1200, 900)
+        size = (900, 800)
     )
     savefig(p_final, "data_all_patients/all_patients.png")
     @info "Saved all patients to data_all_patients/all_patients.png"

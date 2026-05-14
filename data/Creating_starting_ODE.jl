@@ -20,15 +20,16 @@ using .ParametersMod: parameters
 export generate_patients_odes
 
 # time parameters are left constant (τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la) to avoid timing issues in the ODE solver
-function generate_patients_odes(n_samples::Int) 
+function generate_patients_odes(n_samples::Int; seed::Union{Int,Nothing}=nothing) 
+    seed !== nothing && Random.seed!(seed) # for reproducibility
     mkpath("data_all_patients")
     patients_params = Vector{Vector{Float64}}(undef, n_samples)
     loguniform(a, b) = exp(rand() * (log(b) - log(a)) + log(a))
     patients_odes = Vector{ODEProblem}()
 
     for i in 1:n_samples 
-        R_mv  = loguniform(0.001, 0.025)
-        R_ao  = loguniform(0.001, 0.020)
+        R_mv  = loguniform(0.003, 0.025)
+        R_ao  = loguniform(0.003, 0.020)
         R_s   = loguniform(0.5, 2.5)
         ratio_s = rand(Uniform(5.0, 15.0))
         R_sv  = clamp(R_s / ratio_s, 0.03, 0.4)
@@ -39,10 +40,10 @@ function generate_patients_odes(n_samples::Int)
         ratio_lv = rand(Uniform(10.0, 25.0))
         Elvmax   = ratio_lv * Elvmin
         Elvmax   = clamp(Elvmax, 1.0, 4.0)   # hard physiological cap
-        Elamin = loguniform(0.05, 0.25)
+        Elamin = loguniform(0.06, 0.25)
         ratio_la = rand(Uniform(3.0, 8.0))
         Elamax   = ratio_la * Elamin
-        Elamax   = clamp(Elamax, 0.1, 1.2)   # atrial max elastance cap
+        Elamax   = clamp(Elamax, 0.1, 0.8)   # atrial max elastance cap
         if Elvmax <= Elamax
             Elvmax = min(1.5 * Elamax, 4.0)
         end

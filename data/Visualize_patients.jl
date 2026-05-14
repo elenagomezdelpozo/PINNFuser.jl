@@ -13,7 +13,7 @@ using .ParametersMod: parameters
 
 include("../data/Creating_starting_ODE.jl")
 
-patients_params, patients_odes = PatientsMod.generate_patients_odes(parameters.number_of_patients)
+patients_params, patients_odes = PatientsMod.generate_patients_odes(parameters.number_of_patients, seed = 42)
 
 # INDIVIDUALLY PLOT EACH PATIENT BEFORE TRAINING
 for (i, p_ode) in enumerate(patients_odes)
