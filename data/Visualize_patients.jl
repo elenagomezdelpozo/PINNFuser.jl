@@ -22,3 +22,6 @@ end
 
 # ALL PATIENTS TOGETHER BEFORE TRAINING
 LibInfuser.Plot_all_patients(patients_odes)
+
+# TARGET MODEL
+LibInfuser.Plot_target()

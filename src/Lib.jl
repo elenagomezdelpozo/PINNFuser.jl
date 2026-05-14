@@ -21,7 +21,7 @@ using .LossesMod
 
 using .ModelMod: NIK_2ch, NIK_2ch!
 
-using .PlotsMod: Plot_model, Plot_ODE, Plot_all_patients
+using .PlotsMod: Plot_model, Plot_ODE, Plot_all_patients, Plot_target
 
 using .TestMod: Tester_f, generate_patients
 

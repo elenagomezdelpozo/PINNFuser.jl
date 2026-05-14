@@ -6,7 +6,7 @@ using .ModelMod: NIK_2ch
 include("Parameters.jl")
 using .ParametersMod: parameters
 
-export Plot_model, Plot_ODE, Plot_all_patients
+export Plot_model, Plot_ODE, Plot_all_patients, Plot_target
 
 using DelimitedFiles
 using JLD2          
@@ -78,7 +78,9 @@ function Plot_model(name)
                 pinn_pred[:, i],
                 label = "PINN",
                 xlabel = "time",
-                ylabel = parameters.labels[i],
+                ylabel = parameters.units[i],
+                ylims = parameters.ylims[i],
+                title = parameters.labels[i],
                 lw = 2
             )
             plot!(
@@ -139,6 +141,7 @@ function Plot_ODE(name::String, ode_prob_base::ODEProblem)
             label = "ODE",
             xlabel = "time",
             ylabel = parameters.units[i],
+            ylims = parameters.ylims[i],
             title = parameters.labels[i],
             lw = 2
         )
@@ -174,6 +177,7 @@ function Plot_all_patients(patient_odes::Vector)
                 label = "patient $i",
                 xlabel = "time",
                 ylabel = parameters.units[j],
+                ylims = parameters.ylims[j],
                 lw    = 1.5,
                 color = colors[i]
             )
@@ -189,4 +193,30 @@ function Plot_all_patients(patient_odes::Vector)
     @info "Saved all patients to data_all_patients/all_patients.png"
 end # function
 
+function Plot_target()
+    plts = Vector{Plots.Plot}(undef, 6)
+    for i in 1:6
+        p = plot(
+            title     = parameters.labels[i],
+            xlabel    = "time",
+            ylabel    = parameters.units[i],
+            ylims     = parameters.ylims[i]
+        )
+        plot!(
+            p,
+            parameters.extrap_original_data[Int(end-parameters.range_to_plot*parameters.num_of_samples_per_cycle+1):end, i],
+            lw = 1.5,
+        ) 
+        plts[i] = p
+    end
+    
+    fig = plot(
+        plts...,
+        layout      = (3, 2),
+        size        = (900, 800)
+        )
+        
+    savefig(fig, "data_all_patients/target_data.png")
+    @info "Saved target data to data_all_patients/target_data.png"
+end # function
 end # module
