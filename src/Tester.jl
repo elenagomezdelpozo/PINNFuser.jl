@@ -43,7 +43,7 @@ end
 
 function Tester_f(name, new_ode_parameters)
     i = parameters.i
-    data = load("trainings/$(name)_$(i).jld2")
+    data = load("trainings/$(name)_all.jld2")
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
@@ -117,6 +117,9 @@ function Tester_f(name, new_ode_parameters)
                 pinn_to_plot[:, i],
                 label = "PINN",
                 xlabel = "time",
+                ylabel = parameters.units[i],
+                ylims = parameters.ylims[i],
+                title = parameters.labels[i],
                 lw = 2
             )
             plot!(
@@ -134,7 +137,6 @@ function Tester_f(name, new_ode_parameters)
     p1 = plot(
         plots...,
         layout = (3, 2),
-        title = "Equation $(i)",
         size = (900, 800)
     )
     savefig(p1, "figures/testing_$(name).png")

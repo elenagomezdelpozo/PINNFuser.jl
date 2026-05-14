@@ -8,7 +8,7 @@ if working_on == "hpc"
     i = parse(Int, ARGS[1])
     config_type = length(ARGS) > 1 ? ARGS[2] : "single_data"
 elseif working_on == "local"
-    name = "data_deriv"
+    name = "data"
     active = ["data", "firstderiv"] # "data, physics, mass, zero_mean, negativity, firstderiv, periodicity" 
     i = 7 # 1:6 for single variable, 7 for all variables
     early_stopping_start = 10
@@ -42,7 +42,8 @@ if working_on == "hpc"
     @info "Using configuration type: $(config_type)"
 
     changeable = (
-        name = configs[i].name,          
+        name = configs[i].name,     
+        i=i,     
         active = configs[i].active,
         early_stopping_start = configs[i].early_stopping_start,
         training_vars = configs[i].training_vars,
@@ -120,12 +121,24 @@ plot_params = (
         "Vla"
     ],
     ylims = [
-        (0, 130),
-        (4, 8),
-        (60, 140),
-        (22,24),
-        (30, 120),
-        (30, 70)
+        (0, 150),
+        (4, 10),
+        (40, 140),
+        (21,28),
+        (0, 120),
+        (30, 90)
+    ],
+    units = [
+        "mmHg",
+        "mmHg",
+        "mmHg",
+        "mmHg",
+        "mL",
+        "mL",
+        "mL/s",
+        "mL/s",
+        "mL/s",
+        "mL/s"
     ]
 )
 dependent = (

@@ -17,7 +17,7 @@ using Plots
 using ComponentArrays
 
 function Plots_f(name, i)
-    data = load("trainings/$(name)_$(i).jld2")
+    data = load("trainings/$(name)_all.jld2")
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
@@ -91,8 +91,9 @@ function Plots_f(name, i)
                 pinn_to_plot[:, i],
                 label = "PINN",
                 xlabel = "time",
-                ylabel = parameters.labels[i],
+                ylabel = parameters.units[i],
                 ylims = parameters.ylims[i],
+                title = parameters.labels[i],
                 lw = 2
             )
             plot!(
@@ -118,7 +119,6 @@ function Plots_f(name, i)
     p1 = plot(
         plots...,
         layout = (3, 2),
-        title = "Equation $(i)",
         size = (900, 800)
     )
     savefig(p1, "figures/$(name).png")
