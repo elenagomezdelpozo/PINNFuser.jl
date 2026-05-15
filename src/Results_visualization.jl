@@ -152,7 +152,7 @@ function Plot_ODE(name::String, ode_prob_base::ODEProblem)
         layout = (3, 2),
         size = (900, 800)
     )
-    savefig(p1, "data_all_patients/$(name).png")
+    savefig(p1, "data_figures/$(name).png")
 
 end #function
 
@@ -189,8 +189,8 @@ function Plot_all_patients(patient_odes::Vector)
         layout = (3, 2),
         size = (900, 800)
     )
-    savefig(p_final, "data_all_patients/all_patients.png")
-    @info "Saved all patients to data_all_patients/all_patients.png"
+    savefig(p_final, "data_figures/all_patients.png")
+    @info "Saved all patients to data_figures/all_patients.png"
 end # function
 
 function Plot_target()
@@ -200,7 +200,8 @@ function Plot_target()
             title     = parameters.labels[i],
             xlabel    = "time",
             ylabel    = parameters.units[i],
-            ylims     = parameters.ylims[i]
+            ylims     = parameters.ylims[i],
+            legend    = false
         )
         plot!(
             p,
@@ -216,7 +217,7 @@ function Plot_target()
         size        = (900, 800)
         )
         
-    savefig(fig, "data_all_patients/target_data.png")
-    @info "Saved target data to data_all_patients/target_data.png"
+    savefig(fig, "data_figures/target_data.png")
+    @info "Saved target data to data_figures/target_data.png"
 end # function
 end # module
