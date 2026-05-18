@@ -6,8 +6,8 @@
 #SBATCH --mem=4GB
 #SBATCH -A plgsanomodeling2-cpu
 #SBATCH -p plgrid
-#SBATCH --output=logs/training_%a.out
-#SBATCH --error=logs/training_%a.err
+#SBATCH --output=hpc_scripts/logs/training_%a.out
+#SBATCH --error=hpc_scripts/logs/training_%a.err
 #SBATCH --array=1-7
 
 #Load necessary modules (e.g., for GCC, MPI, etc.)

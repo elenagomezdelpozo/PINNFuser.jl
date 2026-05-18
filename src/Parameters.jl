@@ -3,20 +3,14 @@ module ParametersMod
 using DelimitedFiles
 using StaticArrays
 
-working_on = "local" # CHANGE "hpc" or "local"
+working_on = "hpc" # CHANGE "hpc" or "local"
 if working_on == "hpc"
     @info "Working on HPC. Make sure to change the paths in the code accordingly."
     i = parse(Int, ARGS[1])
-    loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/target_data.txt")
-    plotting = false
-    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(changeable.name)_hpc.jld2"
-
+   
 elseif working_on == "local"
     @info "Working on local. Make sure to change the paths in the code accordingly."
     i = 1 # CHANGE THIS TO 1, 2, 3, 4, 5, 6 OR 7 TO TRAIN DIFFERENT MODELS
-    loaded_data = readdlm("data/target_data.txt")
-    plotting = true
-    savepath = "trainings/pinn_$(changeable.name)_local.jld2"
 
 end
 
@@ -41,6 +35,17 @@ changeable = (
     range_to_plot = 5.0,
     number_of_patients = 10
 )
+
+if working_on == "hpc"
+     loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/target_data.txt")
+    plotting = false
+    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(changeable.name)_hpc.jld2"
+
+elseif working_on == "local"
+    loaded_data = readdlm("data/target_data.txt")
+    plotting = true
+    savepath = "trainings/pinn_$(changeable.name)_local.jld2"
+end
 
 training = (
     vars = [1,2,3,4,5,6],

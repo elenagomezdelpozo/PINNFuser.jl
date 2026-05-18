@@ -37,7 +37,7 @@ trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
     plotting = true
 )
 
-jldsave(savepath = parameters.savepath;
+jldsave(parameters.savepath;
         trained_p = trained_p,
         trained_st = trained_st,
         losses = losses
