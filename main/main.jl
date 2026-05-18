@@ -15,7 +15,7 @@ using .ParametersMod: parameters
 include("../data/Creating_starting_ODE.jl")
 using .PatientsMod: generate_patients_odes
 
-patients_params, patients_odes = generate_patients_odes(parameters.number_of_patients)
+patients_params, patients_odes = generate_patients_odes(parameters.number_of_patients, seed = 42)
 name = parameters.name
 
 nn_vars = parameters.vars
