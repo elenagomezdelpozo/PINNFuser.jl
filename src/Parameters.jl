@@ -7,9 +7,17 @@ working_on = "local" # CHANGE "hpc" or "local"
 if working_on == "hpc"
     @info "Working on HPC. Make sure to change the paths in the code accordingly."
     i = parse(Int, ARGS[1])
+    loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/target_data.txt")
+    plotting = false
+    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(changeable.name)_hpc.jld2"
+
 elseif working_on == "local"
     @info "Working on local. Make sure to change the paths in the code accordingly."
     i = 1 # CHANGE THIS TO 1, 2, 3, 4, 5, 6 OR 7 TO TRAIN DIFFERENT MODELS
+    loaded_data = readdlm("data/target_data.txt")
+    plotting = true
+    savepath = "trainings/pinn_$(changeable.name)_local.jld2"
+
 end
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
@@ -39,11 +47,12 @@ training = (
     n_neurons_per_layer = 10,
     lr = 1e-3,
     dtmax = 1e-2,
-    nn_output_weight = 1.0,
+    nn_output_weight = 1.0, # possibly lower
     iterations = 1000,
     initialisation = 1e-3,
     plot_every = 1,
     num_of_cycles = 1,
+    seed = 42
 )
 
 # Do not change these below
@@ -62,16 +71,6 @@ independent = (
 )
 
 Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.ode_params
-
-if changeable.working_on == "hpc"
-    loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/target_data.txt")
-    plotting = false
-    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(changeable.name)_hpc.jld2"
-elseif changeable.working_on == "local"
-    loaded_data = readdlm("data/target_data.txt")
-    plotting = true
-    savepath = "trainings/pinn_$(changeable.name)_local.jld2"
-end
 
 num_of_samples_tsteps = Int(independent.num_of_samples_per_cycle * (independent.tspan[2] - independent.tspan[1])) 
 tsteps = range(independent.tspan[1], independent.tspan[2], length = num_of_samples_tsteps)

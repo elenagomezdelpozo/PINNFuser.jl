@@ -29,14 +29,14 @@ function PINN_Infuser_f(
     reltol::Float64 = 1e-6,
     abstol::Float64 = 1e-6,
     early_stopping::Bool = true,
-    plotting::Bool = true,
-    rng::StableRNG = StableRNG(5958)
+    plotting::Bool = true
 )::Tuple{Any,Any,Any}
 
     U_MEAN = vec(mean(target_data, dims=1))
     U_STD  = vec(std(target_data,  dims=1)) .+ 1e-6
     data_norm = (target_data .- U_MEAN') ./ U_STD'
 
+    rng::StableRNG = StableRNG(parameters.seed)
     p_NN, st = Lux.setup(rng, nn)
     p_NN = parameters.initialisation * ComponentVector{Float64}(p_NN)
     # ── iteration counter visible to both optf and callback ──────────────
