@@ -1,2 +1,12 @@
 WARNING: Method definition setup(Optimisers.AbstractRule, ComponentArrays.ComponentArray{T, N, A, Axes} where Axes<:Tuple{Vararg{ComponentArrays.AbstractAxis{IdxMap} where IdxMap}} where A<:AbstractArray{T, N} where N where T) in module ComponentArraysOptimisersExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ComponentArrays/fwmmC/ext/ComponentArraysOptimisersExt.jl:7 overwritten in module LuxComponentArraysExt at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/5xfGO/ext/LuxComponentArraysExt.jl:19.
 ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
+[ Info: Working on HPC. Make sure to change the paths in the code accordingly.
+[ Info: Working on HPC. Make sure to change the paths in the code accordingly.
+[ Info: Working on HPC. Make sure to change the paths in the code accordingly.
+[ Info: Working on HPC. Make sure to change the paths in the code accordingly.
+[ Info: Working on HPC. Make sure to change the paths in the code accordingly.
+[ Info: Working on HPC. Make sure to change the paths in the code accordingly.
+[ Info: Working on HPC. Make sure to change the paths in the code accordingly.
+[ Info: Working on HPC. Make sure to change the paths in the code accordingly.
+[ Info: Early stopping at iteration 32 with loss 2.149611257429005
+[ Info: Model saved successfully to pinn_data&physics.jld2
