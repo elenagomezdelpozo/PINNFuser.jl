@@ -9,26 +9,24 @@ if working_on == "hpc"
     i = parse(Int, ARGS[1])
    
 elseif working_on == "local"
-    i = 2 # CHANGE THIS TO 1, 2, 3, 4, 5, 6 OR 7 TO TRAIN DIFFERENT MODELS
-
+    i = 1 # CHANGE THIS TO 1, 2, 3, 4, 5, 6 OR 7 TO TRAIN DIFFERENT MODELS
 end
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
-    "data",
-    "data&physics",
-    "data&mass",
-    "data&zero_mean",
-    "data&negativity",
-    "data&firstderiv",
-    "data&periodicity"
+    "data",             #1
+    "data&physics",     #2
+    "data&mass",        #3
+    "data&zero_mean",   #4
+    "data&negativity",  #5
+    "data&firstderiv",  #6
+    "data&periodicity"  #7
 ]
 
 active = i == 1 ? [actives[1]] : [actives[1], actives[i]]
 
 changeable = ( 
     working_on = working_on,
-    i = 7,
     name = names[i],
     active = active,
     early_stopping_start = 20,
