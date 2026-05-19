@@ -12,7 +12,7 @@ using .LibInfuser
 include("../src/Parameters.jl")
 using .ParametersMod: parameters
 
-patients_params, patients_odes = LibInfuser.generate_patients_odes(parameters.number_of_patients, seed = 42)
+patients_params, patients_odes = LibInfuser.generate_patients(parameters.number_of_patients, seed = 42)
 name = parameters.name
 
 nn_vars = parameters.vars

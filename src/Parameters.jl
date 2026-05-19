@@ -1,3 +1,4 @@
+__precompile__(false)  # Add this here
 module ParametersMod
 
 using DelimitedFiles

@@ -1,3 +1,4 @@
+__precompile__(false)  # Add this here
 module PlotsMod
 
 include("Model.jl")
