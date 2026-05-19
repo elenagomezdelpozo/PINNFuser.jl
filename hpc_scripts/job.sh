@@ -2,12 +2,12 @@
 #SBATCH -J training
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=10:00:00
+#SBATCH --time=20:00:00
 #SBATCH --mem=4GB
 #SBATCH -A plgsanomodeling2-cpu
 #SBATCH -p plgrid
-#SBATCH --output=hpc_scripts/logs/training_%a.out
-#SBATCH --error=hpc_scripts/logs/training_%a.err
+#SBATCH --output=hpc_scripts/logs/training_50_%a.out
+#SBATCH --error=hpc_scripts/logs/training_50_%a.err
 #SBATCH --array=1-7
 
 #Load necessary modules (e.g., for GCC, MPI, etc.)
