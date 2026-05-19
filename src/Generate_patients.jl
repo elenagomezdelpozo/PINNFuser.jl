@@ -10,19 +10,17 @@ using Distributions
 using ForwardDiff
 using StaticArrays
 
-
-include("../src/Lib.jl")
-using .LibInfuser
-
 include("../src/Parameters.jl")
 using .ParametersMod: parameters
 
-export generate_patients_odes
+include("../src/Model.jl")
+using .ModelMod: NIK_2ch
+
+export generate_patients
 
 # time parameters are left constant (τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la) to avoid timing issues in the ODE solver
-function generate_patients_odes(n_samples::Int; seed::Union{Int,Nothing}=nothing) 
+function generate_patients(n_samples::Int; seed::Union{Int,Nothing}=nothing) 
     seed !== nothing && Random.seed!(seed) # for reproducibility
-    mkpath("data_all_patients")
     patients_params = Vector{Vector{Float64}}(undef, n_samples)
     loguniform(a, b) = exp(rand() * (log(b) - log(a)) + log(a))
     patients_odes = Vector{ODEProblem}()
@@ -50,7 +48,7 @@ function generate_patients_odes(n_samples::Int; seed::Union{Int,Nothing}=nothing
 
         params_vec = [R_mv, R_ao, R_s, R_sv, C_sa, C_sv, Elvmax, Elvmin, Elamax, Elamin]
         patients_params[i] = params_vec  
-        ode_problem = ODEProblem(LibInfuser.NIK_2ch, SA[parameters.u0...], parameters.tspan, params_vec);
+        ode_problem = ODEProblem(ModelMod.NIK_2ch, SA[parameters.u0...], parameters.tspan, params_vec);
         push!(patients_odes, ode_problem);
     end
     return patients_params, patients_odes

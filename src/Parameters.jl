@@ -6,12 +6,10 @@ using Lux, StableRNGs, ComponentArrays
 
 working_on = "local" # CHANGE "hpc" or "local"
 if working_on == "hpc"
-    @info "Working on HPC. Make sure to change the paths in the code accordingly."
     i = parse(Int, ARGS[1])
    
 elseif working_on == "local"
-    @info "Working on local. Make sure to change the paths in the code accordingly."
-    i = 1 # CHANGE THIS TO 1, 2, 3, 4, 5, 6 OR 7 TO TRAIN DIFFERENT MODELS
+    i = 2 # CHANGE THIS TO 1, 2, 3, 4, 5, 6 OR 7 TO TRAIN DIFFERENT MODELS
 
 end
 
@@ -46,7 +44,7 @@ if working_on == "hpc"
 elseif working_on == "local"
     loaded_data = readdlm("data/target_data.txt")
     plotting = true
-    savepath = "trainings/pinn_$(changeable.name)_local.jld2"
+    savepath = "trainings/pinn_$(changeable.name)_hpc.jld2"
 end
 
 training = (

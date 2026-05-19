@@ -29,14 +29,10 @@ elseif i == 1:6 # some variables
 else
     error("Invalid variable index. Please choose an index between 1 and 7.")
 end
+
 n = parameters.n_neurons_per_layer
-NN = Lux.Chain(
-    Lux.Dense(n, n, tanh),
-    Lux.Dense(n, n, tanh),
-    Lux.Dense(n, n, tanh),
-    Lux.Dense(n, n, tanh),
-    Lux.Dense(n, length(nn_vars)),
-)
+NN = parameters.NN
+
 trained_p, trained_st, losses, nn_history = LibInfuser.PINN_Infuser_f( 
     ode_problem,
     ode_mat_base,
