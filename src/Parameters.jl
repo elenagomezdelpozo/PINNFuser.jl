@@ -4,7 +4,7 @@ using DelimitedFiles
 using StaticArrays
 using Lux, StableRNGs, ComponentArrays
 
-working_on = "local" # CHANGE "hpc" or "local"
+working_on = "hpc" # CHANGE "hpc" or "local"
 if working_on == "hpc"
     i = parse(Int, ARGS[1])
    
@@ -14,13 +14,13 @@ end
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
-    "data",             #1
-    "data&physics",     #2
-    "data&mass",        #3
-    "data&zero_mean",   #4
-    "data&negativity",  #5
-    "data&firstderiv",  #6
-    "data&periodicity"  #7
+    "50data",             #1
+    "50data&physics",     #2
+    "50data&mass",        #3
+    "50data&zero_mean",   #4
+    "50data&negativity",  #5
+    "50data&firstderiv",  #6
+    "50data&periodicity"  #7
 ]
 
 active = i == 1 ? [actives[1]] : [actives[1], actives[i]]
@@ -31,7 +31,7 @@ changeable = (
     active = active,
     early_stopping_start = 20,
     range_to_plot = 5.0,
-    number_of_patients = 10
+    number_of_patients = 50
 )
 
 if working_on == "hpc"
@@ -42,7 +42,7 @@ if working_on == "hpc"
 elseif working_on == "local"
     loaded_data = readdlm("data/target_data.txt")
     plotting = true
-    savepath = "trainings/pinn_$(changeable.name)_hpc.jld2"
+    savepath = "trainings/pinn_$(changeable.name)_local.jld2"
 end
 
 training = (
