@@ -2,8 +2,9 @@ module ParametersMod
 
 using DelimitedFiles
 using StaticArrays
+using Lux, StableRNGs, ComponentArrays
 
-working_on = "hpc" # CHANGE "hpc" or "local"
+working_on = "local" # CHANGE "hpc" or "local"
 if working_on == "hpc"
     @info "Working on HPC. Make sure to change the paths in the code accordingly."
     i = parse(Int, ARGS[1])
@@ -29,6 +30,7 @@ active = i == 1 ? [actives[1]] : [actives[1], actives[i]]
 
 changeable = ( 
     working_on = working_on,
+    i = 7,
     name = names[i],
     active = active,
     early_stopping_start = 20,
@@ -37,7 +39,7 @@ changeable = (
 )
 
 if working_on == "hpc"
-     loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/target_data.txt")
+    loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/target_data.txt")
     plotting = false
     savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(changeable.name)_hpc.jld2"
 
@@ -101,6 +103,15 @@ config = (
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1e-5
 )
+
+NN = Lux.Chain(
+    Lux.Dense(length(independent.u0), training.n_neurons_per_layer, tanh),
+    Lux.Dense(training.n_neurons_per_layer, training.n_neurons_per_layer, tanh),
+    Lux.Dense(training.n_neurons_per_layer, training.n_neurons_per_layer, tanh),
+    Lux.Dense(training.n_neurons_per_layer, training.n_neurons_per_layer, tanh),
+    Lux.Dense(training.n_neurons_per_layer, length(training.vars)),
+)  
+
 plot_params = (
     labels = [
         "Plv",
@@ -136,6 +147,7 @@ plot_params = (
     ]
 )
 dependent = (
+    NN = NN,
     plotting = plotting,
     savepath = savepath,
     num_of_samples_tsteps = num_of_samples_tsteps,

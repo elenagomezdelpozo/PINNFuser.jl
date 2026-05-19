@@ -19,13 +19,7 @@ patients_params, patients_odes = generate_patients_odes(parameters.number_of_pat
 name = parameters.name
 
 nn_vars = parameters.vars
-NN = Lux.Chain(
-    Lux.Dense(length(parameters.u0), parameters.n_neurons_per_layer, tanh),
-    Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-    Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-    Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-    Lux.Dense(parameters.n_neurons_per_layer, length(nn_vars)),
-)
+NN = parameters.NN
 
 trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
     patients_odes,

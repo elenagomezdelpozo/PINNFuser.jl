@@ -36,7 +36,7 @@ function PINN_Infuser_f(
     U_STD  = vec(std(target_data,  dims=1)) .+ 1e-6
     data_norm = (target_data .- U_MEAN') ./ U_STD'
 
-    rng::StableRNG = StableRNG(parameters.seed)
+    rng = StableRNG(parameters.seed)
     p_NN, st = Lux.setup(rng, nn)
     p_NN = parameters.initialisation * ComponentVector{Float64}(p_NN)
     # ── iteration counter visible to both optf and callback ──────────────

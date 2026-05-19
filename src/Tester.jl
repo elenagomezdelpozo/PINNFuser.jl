@@ -42,88 +42,75 @@ function generate_patients(n_samples::Int; seed::Int)
 end
 
 function Tester_f(name, new_ode_parameters)
-    i = parameters.i
-    data = load("trainings/$(name)_$(i).jld2")
+    data = load(parameters.savepath)
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
-    losses = data["losses"]
-    nn_history = data["nn_history"]
-    @info "Model loaded from \"trainings/$(name)_$(i).jld2\""
-
-    if i == 7
-        nn_vars = parameters.vars  
-    elseif i in 1:6
-        nn_vars = [parameters.vars[i]]
-    else 
-        error("Invalid variable index: $(i). Must be 1-6 or 7 for all.")
-    end
+    @info "Model loaded from $(parameters.savepath)"
+    
+    nn_vars = parameters.vars  
     @info "nn_vars: $(nn_vars)"
 
     # Reconstruct clean NamedTuple parameter structure (avoids ReshapedArray bug)
-    NN = Lux.Chain(
-        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-        Lux.Dense(parameters.n_neurons_per_layer, length(nn_vars)),
-    )
-    rng = StableRNG(5958)
-    trained_p, _ = Lux.setup(rng, NN)
+    rng = StableRNG(parameters.seed)
+    trained_p, _ = Lux.setup(rng, parameters.NN)
     trained_p = ComponentVector{Float64}(trained_p)
     trained_p .= Float64.(data["trained_p"])  # copy values into fresh contiguous memory
 
     # ── PINN ODE (exactly mirrors pinn_ode! from training) ────────────────
-    function pinn_ode!(du, u, trained_p, t)
-        nn_output = NN(u, trained_p, trained_st)[1]   # plain Vector, no reshape — matches training
-        ModelMod.NIK_2ch!(du, u, new_ode_parameters, t)
-        for (k, i) in enumerate(nn_vars)
-            du[i] += parameters.nn_output_weight * nn_output[k]
+    function pinn_ode(u, p, t)
+        nn_output  = parameters.NN(u, p, st)[1]
+        # physics doesn't depend on p_NN → ignore for gradient
+        du_physics = Zygote.ignore() do
+            Vector{Float64}(ode_problem.f(Vector{Float64}(u), ode_params, t))
         end
+        correction = [i in nn_vars ?
+                    parameters.nn_output_weight * nn_output[findfirst(==(i), nn_vars)] :
+                    zero(eltype(nn_output))
+                    for i in 1:length(u0_vec)]
+        return du_physics .+ correction
     end
     
     # ── Solve ─────────────────────────────────────────────────────────────────
     pinn_problem = ODEProblem(
-        (du, u, p, t) -> pinn_ode!(du, u, trained_p, t),
+        (u, p, t) -> pinn_ode(u, trained_p, t),
         parameters.u0,
         parameters.tspan,
         trained_p,
     )
     solved_pinn = solve(pinn_problem, Vern7();
-        saveat = parameters.tsteps, dtmax = parameters.dtmax, reltol = 1e-6, abstol = 1e-6)
+        saveat = parameters.plot_time, dtmax = parameters.dtmax, reltol = 1e-6, abstol = 1e-6)
     pinn_pred = Matrix(Array(solved_pinn)')   # (time × vars)
 
     # ── Baseline ODE (no NN) ──────────────────────────────────────────────────
     ode_prob_base = ODEProblem(ModelMod.NIK_2ch!, parameters.u0, parameters.tspan, new_ode_parameters)
     ode_sol       = solve(ode_prob_base, Vern7();
-        saveat = parameters.tsteps, reltol = 1e-6, abstol = 1e-6)
+        saveat = parameters.plot_time, reltol = 1e-6, abstol = 1e-6)
     ode_pred = Matrix(Array(ode_sol)')
-
-    # ── Data ──────────────────────────────────────────────────────────────────
-    original_data = parameters.extrap_original_data[1501:1500 + parameters.num_of_samples, :]
-
-    # ── Mask to plot only t >= 2 (skip transient) ────────────────────────────
-    mask         = parameters.tsteps .>= (first(parameters.tsteps) + 3 * parameters.τ)
-    time_to_plot = parameters.tsteps[mask]
-    data_to_plot = original_data[mask, :]
-    ode_to_plot  = ode_pred[mask, :]
-    pinn_to_plot = pinn_pred[mask, :]
 
     # ── Plot ──────────────────────────────────────────────────────────────────
     @info "Plotting results for testing model \"$(name)\""
     plots = [
         begin
-            p = plot(
-                time_to_plot[:],
-                pinn_to_plot[:, i],
+            p = plot(               
+                pinn_pred[:, i],
+                title     = parameters.labels[i],
+                xlabel    = "time",
+                ylabel    = parameters.units[i],
+                ylims     = parameters.ylims[i],
                 label = "PINN",
-                xlabel = "time",
                 lw = 2
             )
             plot!(
                 p,
-                time_to_plot[:],
-                ode_to_plot[:, i],
+                ode_pred[:, i],
                 label = "ODE",
+                lw = 2,
+                ls = :dash
+            )
+            plot!(
+                p,
+                parameters.extrap_original_data[Int(end-parameters.range_to_plot*parameters.num_of_samples_per_cycle+1):end, i],
+                label = "DATA",
                 lw = 2,
                 ls = :dash
             )
@@ -134,7 +121,6 @@ function Tester_f(name, new_ode_parameters)
     p1 = plot(
         plots...,
         layout = (3, 2),
-        title = "Equation $(i)",
         size = (900, 800)
     )
     savefig(p1, "figures/testing_$(name).png")

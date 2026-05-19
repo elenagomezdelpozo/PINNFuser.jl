@@ -17,32 +17,25 @@ using Plots
 using ComponentArrays
 
 function Plot_model(name)
-    data = load("trainings/$(name).jld2")
+    data = load(parameters.savepath)
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]
     losses = data["losses"]
-    @info "Model loaded from \"trainings/$(name).jld2\""
-    
+    @info "Model loaded from $(parameters.savepath)"
+
     nn_vars = parameters.vars  
-    
     @info "nn_vars: $(nn_vars)"
 
     # Reconstruct clean NamedTuple parameter structure (avoids ReshapedArray bug)
-    NN = Lux.Chain(
-        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-        Lux.Dense(parameters.n_neurons_per_layer, parameters.n_neurons_per_layer, tanh),
-        Lux.Dense(parameters.n_neurons_per_layer, length(nn_vars)),
-    )
-    rng = StableRNG(5958)
-    trained_p, _ = Lux.setup(rng, NN)
+    
+    rng = StableRNG(parameters.seed)
+    trained_p, _ = Lux.setup(rng, parameters.NN)
     trained_p = ComponentVector{Float64}(trained_p)
     trained_p .= Float64.(data["trained_p"])  # copy values into fresh contiguous memory
 
     # ── PINN ODE (exactly mirrors pinn_ode! from training) ────────────────
     function pinn_ode!(du, u, trained_p, t)
-        nn_output = NN(u, trained_p, trained_st)[1]   # plain Vector, no reshape — matches training
+        nn_output = parameters.NN(u, trained_p, trained_st)[1]   # plain Vector, no reshape — matches training
         ModelMod.NIK_2ch!(du, u, parameters.ode_params, t)
         for (k, i) in enumerate(nn_vars)
             du[i] += parameters.nn_output_weight * nn_output[k]
