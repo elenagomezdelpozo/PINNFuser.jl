@@ -4,6 +4,7 @@ using Random
 using OrdinaryDiffEq
 using Lux, Zygote, Statistics, ComponentArrays
 using Distributions
+using StaticArrays
 
 include("../src/Parameters.jl")
 using .ParametersMod: parameters

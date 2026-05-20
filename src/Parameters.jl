@@ -5,12 +5,8 @@ using DelimitedFiles
 using Lux
 
 working_on = "local" # CHANGE "hpc" or "local"
-if working_on == "hpc"
-    i = parse(Int, ARGS[1])
-   
-elseif working_on == "local"
-    i = 1 # CHANGE THIS TO 1, 2, 3, 4, 5, 6 OR 7 TO TRAIN DIFFERENT MODELS
-end
+
+i = parse(Int, ARGS[1])
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
