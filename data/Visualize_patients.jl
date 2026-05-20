@@ -11,7 +11,7 @@ include("../src/Lib.jl")
 include("../src/Parameters.jl")
 using .ParametersMod: parameters
 
-patients_params, patients_odes = LibInfuser.generate_patients(parameters.number_of_patients, seed = 42)
+patients_params, patients_odes = LibInfuser.generate_patients(parameters.number_of_patients, seed = 42);
 
 # INDIVIDUALLY PLOT EACH PATIENT BEFORE TRAINING
 for (i, p_ode) in enumerate(patients_odes)

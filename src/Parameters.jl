@@ -5,7 +5,7 @@ using DelimitedFiles
 using StaticArrays
 using Lux, StableRNGs, ComponentArrays
 
-working_on = "hpc" # CHANGE "hpc" or "local"
+working_on = "local" # CHANGE "hpc" or "local"
 if working_on == "hpc"
     i = parse(Int, ARGS[1])
    

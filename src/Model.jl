@@ -24,8 +24,12 @@ function NIK_2ch(u::AbstractVector, p, t) # out of place (no !) for Zygote AD, i
     du2 = (Qsv - Qmv) * E_la + (pLA / E_la) * dE_la # Left Atrium pressure
     du3 = (Qav - Qs) / Csa # Systemic Arterial pressure
     du4 = (Qs - Qsv) / Csv # Systemic Venous pressure
-    du5 = Qmv - Qav # LV volume
-    du6 = Qsv - Qmv # LA volume
+
+    dVlv = Qmv - Qav # LV volume
+    dVla = Qsv - Qmv # LA volume
+    du5 = (Vlv <= 10.0 && dVlv < 0.0) ? 0.0 : dVlv
+    du6 = (Vla <= 5.005 && dVla < 0.0) ? 0.0 : dVla
+
     du7 = Valve(Zao, du1 - du3, pLV- psa)  # AV flow
     du8 = Valve(Rmv, du2 - du1, pLA - pLV)  # MV flow
     du9 = (du3 - du4) / Rs # Systemic flow
@@ -49,8 +53,12 @@ function NIK_2ch!(du, u::AbstractVector, p, t) # out of place (no !) for Zygote 
     du[2] = (Qsv - Qmv) * E_la + (pLA / E_la) * dE_la # Left Atrium pressure
     du[3] = (Qav - Qs) / Csa # Systemic Arterial pressure
     du[4] = (Qs - Qsv) / Csv # Systemic Venous pressure
-    du[5] = Qmv - Qav # LV volume
-    du[6] = Qsv - Qmv # LA volume
+
+    dVlv = Qmv - Qav # LV volume
+    dVla = Qsv - Qmv # LA volume
+    du[5] = (Vlv <= 10.0 && dVlv < 0.0) ? 0.0 : dVlv
+    du[6] = (Vla <= 5.005 && dVla < 0.0) ? 0.0 : dVla
+    
     du[7] = Valve(Zao, du[1] - du[3], pLV- psa)  # AV flow
     du[8] = Valve(Rmv, du[2] - du[1], pLA - pLV)  # MV flow
     du[9] = (du[3] - du[4]) / Rs # Systemic flow

@@ -64,12 +64,12 @@ function Plot_all_patients(patient_odes::Vector)
                 var_plots[j],
                 ode_sol.t[:],
                 ode_pred[:, j],
-                label = "patient $i",
                 xlabel = "time",
                 ylabel = parameters.units[j],
-                ylims = parameters.ylims[j],
+                # ylims = parameters.ylims[j],
                 lw    = 1.5,
-                color = colors[i]
+                color = colors[i],
+                legend = false
             )
         end
     end
