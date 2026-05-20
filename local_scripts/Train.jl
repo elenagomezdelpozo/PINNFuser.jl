@@ -1,9 +1,8 @@
 using OrdinaryDiffEq
-using Lux, Plots, Zygote, Statistics, StableRNGs, ComponentArrays
+using Lux, Zygote, Statistics, StableRNGs, ComponentArrays
 using Optimization, OptimizationOptimisers
 using Optim, Measures, BenchmarkTools
 using DelimitedFiles
-using Plots, LinearAlgebra, JLD2
 using SciMLSensitivity 
 
 include("../src/Lib.jl")

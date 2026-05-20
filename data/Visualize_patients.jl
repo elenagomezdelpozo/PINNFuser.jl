@@ -1,11 +1,3 @@
-using OrdinaryDiffEq
-using Lux, Plots, Zygote, Statistics, StableRNGs, ComponentArrays
-using Optimization, OptimizationOptimisers
-using Optim, Measures, BenchmarkTools
-using DelimitedFiles
-using Plots, LinearAlgebra, JLD2
-using SciMLSensitivity
-
 include("../src/Lib.jl")
 
 include("../src/Parameters.jl")

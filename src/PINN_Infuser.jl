@@ -1,15 +1,13 @@
 __precompile__(false)
 module PINNInfuserMod
 
-using StableRNGs, ComponentArrays, LinearAlgebra
+using StableRNGs, ComponentArrays
 using Optimization, OptimizationOptimisers
 using SciMLBase, SciMLSensitivity
 using Statistics
-using StaticArrays
 using Zygote
 using OrdinaryDiffEq: Vern7
 using Lux
-using Plots
 
 include("Losses.jl")
 using .LossesMod

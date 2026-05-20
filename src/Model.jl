@@ -1,10 +1,11 @@
 __precompile__(false)  # Add this here
 module ModelMod
 
+using StaticArrays
+
 include("Model_supporting_f.jl")
 using .ModelSuportMod
 using .ModelSuportMod: Valve, Elastance_v, Elastance_a, DShiElastance_v, DShiElastance_a
-using StaticArrays
 
 export NIK_2ch
 export NIK_2ch!
@@ -58,7 +59,7 @@ function NIK_2ch!(du, u::AbstractVector, p, t) # out of place (no !) for Zygote 
     dVla = Qsv - Qmv # LA volume
     du[5] = (Vlv <= 10.0 && dVlv < 0.0) ? 0.0 : dVlv
     du[6] = (Vla <= 5.005 && dVla < 0.0) ? 0.0 : dVla
-    
+
     du[7] = Valve(Zao, du[1] - du[3], pLV- psa)  # AV flow
     du[8] = Valve(Rmv, du[2] - du[1], pLA - pLV)  # MV flow
     du[9] = (du[3] - du[4]) / Rs # Systemic flow

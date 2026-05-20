@@ -2,8 +2,7 @@ __precompile__(false)  # Add this here
 module ParametersMod
 
 using DelimitedFiles
-using StaticArrays
-using Lux, StableRNGs, ComponentArrays
+using Lux
 
 working_on = "local" # CHANGE "hpc" or "local"
 if working_on == "hpc"

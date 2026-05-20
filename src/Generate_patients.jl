@@ -1,14 +1,9 @@
 module PatientsMod
 # Creating_starting_ODE.jl
-using DelimitedFiles, Logging, EzXML
-using Printf, Random
+using Random
 using OrdinaryDiffEq
-using Lux, Plots, Zygote, Statistics, StableRNGs, ComponentArrays
-using Optimization, OptimizationOptimisers, OptimizationOptimJL
-using Optim, Measures, BenchmarkTools
+using Lux, Zygote, Statistics, ComponentArrays
 using Distributions
-using ForwardDiff
-using StaticArrays
 
 include("../src/Parameters.jl")
 using .ParametersMod: parameters

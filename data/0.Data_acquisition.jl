@@ -1,10 +1,12 @@
 using CellMLToolkit, ModelingToolkit, OrdinaryDiffEq
 using DelimitedFiles, StableRNGs, Statistics
-using Plots
+
 include("../src/Parameters.jl")
 using .ParametersMod: parameters
+
 include("../src/Lib.jl")
 using .LibInfuser
+
 rng = StableRNG(5958)
 
 ml = CellModel("data/Model/ModelMain.cellml")
