@@ -3,7 +3,7 @@
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=20:00:00
-#SBATCH --mem=4GB
+#SBATCH --mem=10GB
 #SBATCH -A plgsanomodeling2-cpu
 #SBATCH -p plgrid
 #SBATCH --output=hpc_scripts/hpc_logs/training_50_%a.out

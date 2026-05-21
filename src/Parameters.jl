@@ -31,9 +31,9 @@ changeable = (
 )
 
 if working_on == "hpc"
-    loaded_data = readdlm("/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/data/target_data.txt")
+    loaded_data = readdlm("/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/data/target_data.txt")
     plotting = false
-    savepath = "/net/people/plgrid/plgelenagdelpozo/CV_0D_models/PINNFuser.jl/trainings/pinn_$(changeable.name)_hpc.jld2"
+    savepath = "/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/trainings/pinn_$(changeable.name)_hpc.jld2"
 
 elseif working_on == "local"
     loaded_data = readdlm("data/target_data.txt")
