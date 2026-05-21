@@ -1,0 +1,28 @@
+ERROR: LoadError: ArgumentError: Package JLD2 not found in current path.
+- Run `import Pkg; Pkg.add("JLD2")` to install the JLD2 package.
+Stacktrace:
+  [1] macro expansion
+    @ Base ./loading.jl:1766 [inlined]
+  [2] macro expansion
+    @ Base ./lock.jl:267 [inlined]
+  [3] __require(into::Module, mod::Symbol)
+    @ Base ./loading.jl:1747
+  [4] #invoke_in_world#3
+    @ Base ./essentials.jl:921 [inlined]
+  [5] invoke_in_world
+    @ Base ./essentials.jl:918 [inlined]
+  [6] require(into::Module, mod::Symbol)
+    @ Base ./loading.jl:1740
+  [7] include(mod::Module, _path::String)
+    @ Base ./Base.jl:495
+  [8] include(x::String)
+    @ Main.LibInfuser /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/src/Lib.jl:2
+  [9] top-level scope
+    @ /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/src/Lib.jl:7
+ [10] include(fname::String)
+    @ Base.MainInclude ./client.jl:489
+ [11] top-level scope
+    @ /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/main/main.jl:1
+in expression starting at /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/src/Visualization.jl:2
+in expression starting at /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/src/Lib.jl:2
+in expression starting at /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/main/main.jl:1

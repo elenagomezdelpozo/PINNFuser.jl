@@ -6,14 +6,14 @@
 #SBATCH --mem=4GB
 #SBATCH -A plgsanomodeling2-cpu
 #SBATCH -p plgrid
-#SBATCH --output=hpc_scripts/logs/training_50_%a.out
-#SBATCH --error=hpc_scripts/logs/training_50_%a.err
+#SBATCH --output=hpc_scripts/hpc_logs/training_50_%a.out
+#SBATCH --error=hpc_scripts/hpc_logs/training_50_%a.err
 #SBATCH --array=1-7
 
 #Load necessary modules (e.g., for GCC, MPI, etc.)
 module load julia >/dev/null 2>&1
-
-cd $HOME/CV_0D_models/PINNFuser.jl
+cd /net/afscra/people/plgelenagdelpozo/PINNFuser.jl
+julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()' >/dev/null 2>&1
 
 #Run your program
 stdbuf -o0 julia main/main.jl $SLURM_ARRAY_TASK_ID

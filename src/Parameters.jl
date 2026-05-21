@@ -4,7 +4,7 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "local" # CHANGE "hpc" or "local"
+working_on = "hpc" # CHANGE "hpc" or "local"
 
 i = parse(Int, ARGS[1])
 
