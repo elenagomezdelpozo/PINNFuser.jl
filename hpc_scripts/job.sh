@@ -13,7 +13,8 @@
 #Load necessary modules (e.g., for GCC, MPI, etc.)
 module load julia >/dev/null 2>&1
 cd /net/afscra/people/plgelenagdelpozo/PINNFuser.jl
+
 julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()' >/dev/null 2>&1
 
 #Run your program
-stdbuf -o0 julia main/main.jl $SLURM_ARRAY_TASK_ID
+stdbuf -o0 julia --project=. main/main.jl $SLURM_ARRAY_TASK_ID
