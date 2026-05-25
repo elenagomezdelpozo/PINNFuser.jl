@@ -60,3 +60,31 @@ Iter 14 | avg_loss: 1.76366
 Iter 15 | avg_loss: 1.76397
   [forward] call=16 loss=computing...
   [forward] call=16 loss=1.7637
+
+Iter 16 | avg_loss: 1.76373
+  [forward] call=17 loss=computing...
+  [forward] call=17 loss=1.7634
+
+Iter 17 | avg_loss: 1.76337
+  [forward] call=18 loss=computing...
+  [forward] call=18 loss=1.763
+
+Iter 18 | avg_loss: 1.76298
+  [forward] call=19 loss=computing...
+  [forward] call=19 loss=1.7619
+
+Iter 19 | avg_loss: 1.76192
+  [forward] call=20 loss=computing...
+  [forward] call=20 loss=1.7609
+
+Iter 20 | avg_loss: 1.76088
+  [forward] call=21 loss=computing...
+  [forward] call=21 loss=1.7606
+
+Iter 21 | avg_loss: 1.76055
+  [forward] call=22 loss=computing...
+  [forward] call=22 loss=1.7599
+
+Iter 22 | avg_loss: 1.75989
+  [forward] call=23 loss=computing...
+  [forward] call=23 loss=1.7583

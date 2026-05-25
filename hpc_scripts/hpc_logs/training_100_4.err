@@ -1,2 +1,8 @@
 WARNING: Method definition rrule(typeof(Base.merge), T1, T2) where {T1<:(NamedTuple{names, T} where T<:Tuple where names), T2<:(NamedTuple{names, T} where T<:Tuple where names)} in module Lux at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/68T9j/src/chainrules.jl:17 overwritten in module ChainRules at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ChainRules/esTf8/src/rulesets/Base/base.jl:313.
 ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
+[ Info: Early stopping at iteration 21 with loss 1.8384309111404837
+ERROR: LoadError: UndefVarError: `jldsave` not defined
+Stacktrace:
+ [1] top-level scope
+   @ /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/main/main.jl:23
+in expression starting at /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/main/main.jl:23

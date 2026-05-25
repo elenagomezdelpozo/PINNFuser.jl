@@ -1,3 +1,5 @@
+using OptimizationOptimisers: ADAM
+
 include("../src/Lib.jl")
 using .LibInfuser
 
@@ -16,8 +18,11 @@ trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
     NN,
     parameters.original_data;
     nn_vars = nn_vars,
+    optimizer = ADAM,
+    reltol = Float32(1e-6),
+    abstol = Float32(1e-6),
     early_stopping = true,
-    plotting = true
+    plotting = parameters.plotting
 )
 
 jldsave(parameters.savepath;
