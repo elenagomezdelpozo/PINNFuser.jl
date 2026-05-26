@@ -8,16 +8,17 @@ working_on = "hpc" # CHANGE "hpc" or "local"
 
 # i = parse(Int, ARGS[1])
 i=1
+number_of_patients = 20
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
-    "50data",             #1
-    "50data&physics",     #2
-    "50data&mass",        #3
-    "50data&zero_mean",   #4
-    "50data&negativity",  #5
-    "50data&firstderiv",  #6
-    "50data&periodicity"  #7
+    "$(number_of_patients)data",             #1
+    "$(number_of_patients)data&physics",     #2
+    "$(number_of_patients)data&mass",        #3
+    "$(number_of_patients)data&zero_mean",   #4
+    "$(number_of_patients)data&negativity",  #5
+    "$(number_of_patients)data&firstderiv",  #6
+    "$(number_of_patients)data&periodicity"  #7
 ]
 
 active = i == 1 ? [actives[1]] : [actives[1], actives[i]]
@@ -28,7 +29,7 @@ changeable = (
     active = active,
     early_stopping_start = 20,
     range_to_plot = 5.0,
-    number_of_patients = 100
+    number_of_patients = number_of_patients
 )
 
 if working_on == "hpc"

@@ -3,21 +3,13 @@ module PINNInfuserMod
 
 using StableRNGs, ComponentArrays
 using Optimization
-using OptimizationOptimisers: ADAM
+using OptimizationOptimisers: Adam
 using SciMLBase, SciMLSensitivity
 using Statistics
 using Zygote
 using OrdinaryDiffEq: Vern7
 using Lux
-#GPU
-using DiffEqGPU
-using CUDA, LuxCUDA
 using Base.Threads
-using MPI
-
-import Pkg; Pkg.add("CUDA")
-import Pkg; Pkg.add("LuxCUDA")
-import Pkg; Pkg.add("MPI")
 
 const CUDA_AVAILABLE = Ref(false)
 function _try_load_cuda()
@@ -95,88 +87,57 @@ function PINN_Infuser_f(
         ode_problem = ode_problems[idx]
         ode_params  = ode_params_list[idx]
         # u0 on device as Float32 (SVector stripped)
-        u0_vec = _to_device(Float32.(Vector(ode_problem.u0)))
+        u0_vec = (Float32.(Vector(ode_problem.u0)))
  
         return function pinn_ode(u, p, t)
-            nn_output = nn(u, p, st)[1]   # p = p_NN flows gradient
- 
+            # u is Float64 from the ODE solver — convert to Float32 for GPU NN call
+            nn_input  = _to_device(Float32.(u))
+            nn_output = Float64.(_to_cpu(nn(nn_input, p, st)[1]))  # back to Float64
+
             du_physics = Zygote.ignore() do
-                Float32.(_to_cpu(ode_problem.f(
-                    Float32.(Vector(_to_cpu(u))), ode_params, t)))
+                Vector{Float64}(ode_problems[idx].f(
+                    Vector{Float64}(u), ode_params, t))
             end
- 
-            # Use precomputed mask — no findfirst allocation in hot path
+
             correction = map(1:n_states) do i
                 k = corr_mask[i]
-                k == 0 ? zero(eltype(nn_output)) :
-                         nn_out_weight * nn_output[k]
+                k == 0 ? zero(Float64) :
+                        Float64(nn_out_weight) * nn_output[k]
             end
- 
-            return _to_device(du_physics) .+ correction
+
+            return du_physics .+ correction
         end
     end
 
-    function predict_all_gpu(p_NN)
-        # Build an ensemble of ODEProblems, each remade with its own u0/params
-        base_prob = ode_problems[1]
- 
-        prob_func = (prob, i, repeat) -> begin
-            u0_vec = _to_device(Float32.(Vector(ode_problems[i].u0)))
-            ODEProblem(make_pinn_ode(i), u0_vec, ode_problems[i].tspan, p_NN)
-        end
- 
-        ensemble = EnsembleProblem(
-            ODEProblem(make_pinn_ode(1),
-                       _to_device(Float32.(Vector(base_prob.u0))),
-                       base_prob.tspan, p_NN);
-            prob_func = prob_func
-        )
- 
-        solve(ensemble, Vern7(),
-              EnsembleGPUArray(CUDA.CUDABackend());
-              trajectories = length(ode_problems),
-              saveat       = Float32.(parameters.training_time),
-              dtmax        = Float32(parameters.dtmax),
-              reltol       = reltol,
-              abstol       = abstol,
-              # InterpolatingAdjoint is cheaper than QuadratureAdjoint on GPU
-              sensealg     = InterpolatingAdjoint(autojacvec=ZygoteVJP()))
-    end
-
-    function predict_all_cpu(p_NN)
-        sols = Vector{Any}(undef, length(ode_problems))
-        @threads for idx in eachindex(ode_problems)
+    function predict_all(p_NN)
+        map(eachindex(ode_problems)) do idx
             pinn_ode = make_pinn_ode(idx)
-            u0_vec   = Float32.(Vector(ode_problems[idx].u0))
-            prob     = ODEProblem(pinn_ode, u0_vec,
-                                  ode_problems[idx].tspan, p_NN)
-            sols[idx] = solve(prob, Vern7();
-                saveat   = Float32.(parameters.training_time),
-                dtmax    = Float32(parameters.dtmax),
-                reltol   = reltol,
-                abstol   = abstol,
+            u0_vec = Float64.(Vector(ode_problems[idx].u0))  # back to Float64
+            tspan  = ode_problems[idx].tspan                 # already Float64
+            prob   = ODEProblem(pinn_ode, u0_vec, tspan, p_NN)
+            solve(prob, Vern7();
+                saveat   = parameters.training_time,         # Float64
+                dtmax    = parameters.dtmax,                 # Float64
+                reltol   = 1e-6,                             # Float64
+                abstol   = 1e-6,                             # Float64
                 sensealg = InterpolatingAdjoint(autojacvec=ZygoteVJP()))
         end
-        return sols
     end
-
-    predict_all = CUDA_AVAILABLE[] ? predict_all_gpu : predict_all_cpu
 
     last_ctxs = Ref{Any}(nothing)
  
     function build_ctx_all(p)
         sols = predict_all(p)
-        # Threaded context construction (cheap, but avoids serial map)
-        ctxs = Vector{Any}(undef, length(ode_problems))
-        @threads for i in eachindex(ode_problems)
-            sol     = CUDA_AVAILABLE[] ? sols[i] : sols[i]   # unified access
-            sol_arr = Float32.(_to_cpu(Array(sol))')         # (T × n_states)
+        # Serial map inside gradient tape — Zygote-safe
+        map(eachindex(ode_problems)) do i
+            sol       = sols[i]
+            sol_arr   = Float32.(_to_cpu(Array(sol))')
             pred_norm = (sol_arr .- U_MEAN_cpu') ./ U_STD_cpu'
-            ctxs[i] = (
+            (
                 sol            = sol,
                 pred_mat       = sol_arr,
                 pred_norm      = pred_norm,
-                data_norm      = _to_cpu(data_norm),         # losses expect CPU
+                data_norm      = _to_cpu(data_norm),
                 target_data    = target_f32,
                 training_steps = parameters.training_time,
                 ode_params     = ode_params_list[i],
@@ -187,7 +148,6 @@ function PINN_Infuser_f(
                 st             = st,
             )
         end
-        return ctxs
     end
  
     # ── 8. Threaded loss reduction helper ────────────────────────────────────
