@@ -1,4 +1,5 @@
 using OptimizationOptimisers: ADAM
+using JLD2
 
 include("../src/Lib.jl")
 using .LibInfuser
