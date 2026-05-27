@@ -10,7 +10,7 @@
 #SBATCH --time=04:00:00
 #SBATCH --output=hpc_scripts/hpc_logs/training_gpu_1.out
 #SBATCH --error=hpc_scripts/hpc_logs/training_gpu_1.err
-
+#SBATCH --array=1-7
 
 # Load necessary modules
 module load julia >/dev/null 2>&1
@@ -28,4 +28,4 @@ nvidia-smi
 
 # Precompile the project once, then run
 julia --threads=auto --project=. -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()'  >/dev/null 2>&1
-julia --threads=auto --project=. main/main.jl
+julia --threads=auto --project=. main/main.jl $SLURM_ARRAY_TASK_ID
