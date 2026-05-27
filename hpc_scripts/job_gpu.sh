@@ -8,8 +8,8 @@
 #SBATCH --mem=7G
 #SBATCH --gres=gpu:1
 #SBATCH --time=04:00:00
-#SBATCH --output=hpc_scripts/hpc_logs/training_gpu_1.out
-#SBATCH --error=hpc_scripts/hpc_logs/training_gpu_1.err
+#SBATCH --output=hpc_scripts/hpc_logs/training_gpu_%a.out
+#SBATCH --error=hpc_scripts/hpc_logs/training_gpu_%a.err
 #SBATCH --array=1-7
 
 # Load necessary modules
