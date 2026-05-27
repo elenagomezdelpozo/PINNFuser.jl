@@ -6,9 +6,9 @@ using Lux
 
 working_on = "hpc" # CHANGE "hpc" or "local"
 
-# i = parse(Int, ARGS[1])
-i=1
-number_of_patients = 20
+#i = parse(Int, ARGS[1])
+i = 1
+number_of_patients = 5
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
@@ -35,12 +35,12 @@ changeable = (
 if working_on == "hpc"
     loaded_data = readdlm("/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/data/target_data.txt")
     plotting = false
-    savepath = "/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/trainings/pinn_$(changeable.name)_hpc.jld2"
+    savepath = "/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/trainings/pinn_$(number_of_patients)_$(changeable.name)_$(working_on).jld2"
 
 elseif working_on == "local"
     loaded_data = readdlm("data/target_data.txt")
     plotting = true
-    savepath = "trainings/pinn_$(changeable.name)_local.jld2"
+    savepath = "trainings/pinn_$(number_of_patients)_$(changeable.name)_$(working_on).jld2"
 end
 
 training = (

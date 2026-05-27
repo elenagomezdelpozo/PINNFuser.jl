@@ -10,15 +10,25 @@ using Zygote
 using OrdinaryDiffEq: Vern7
 using Lux
 using Base.Threads
+using Lux, LuxCUDA, CUDA
 
 const CUDA_AVAILABLE = Ref(false)
 function _try_load_cuda()
     try
-        @eval using CUDA, LuxCUDA, DiffEqGPU
-        CUDA_AVAILABLE[] = CUDA.functional()
-        CUDA_AVAILABLE[] && @info "CUDA detected — running on GPU ($(CUDA.name(CUDA.device())))"
-    catch e
-        @warn "CUDA/LuxCUDA not available, falling back to CPU. ($e)"
+        @eval using CUDA
+        CUDA.allowscalar(false)
+
+        if CUDA.functional(true)
+            CUDA_AVAILABLE[] = true
+            @info "CUDA functional"
+        else
+            CUDA_AVAILABLE[] = false
+            @warn "CUDA installed but not functional"
+        end
+
+    catch err
+        CUDA_AVAILABLE[] = false
+        @warn "CUDA/LuxCUDA not available, falling back to CPU." err
     end
 end
 
@@ -49,9 +59,9 @@ function PINN_Infuser_f(
     nn::Lux.Chain,
     target_data::AbstractMatrix{Float64};
     nn_vars::Union{Nothing,Vector{Int}} = nothing,
-    optimizer = ADAM,
-    reltol::Float32 = 1e-6,
-    abstol::Float32 = 1e-6,
+    optimizer = Adam,
+    reltol::Real = 1e-6,
+    abstol::Real = 1e-6,
     early_stopping::Bool = true,
     plotting::Bool = true
 )::Tuple{Any,Any,Any}
@@ -69,12 +79,9 @@ function PINN_Infuser_f(
 
     rng  = StableRNG(parameters.seed)
     p_NN_raw, st = Lux.setup(rng, nn)
-
-    st = _to_device(st)
-
-    p_NN = _to_device(
-        Float32(parameters.initialisation) .* ComponentVector{Float32}(p_NN_raw)
-    )
+    
+    st = p_NN_raw  |> cpu_device()   
+    p_NN = Float32(parameters.initialisation) .* ComponentVector{Float32}(p_NN_raw)
 
     n_states      = length(ode_problems[1].u0)
     corr_mask     = _build_correction_mask(nn_vars, n_states)
@@ -82,63 +89,49 @@ function PINN_Infuser_f(
  
     call_count = Ref(0)
     log_buffer = String[]          # batch prints; flushed every callback
-    
-    function make_pinn_ode(idx)
-        ode_problem = ode_problems[idx]
-        ode_params  = ode_params_list[idx]
-        # u0 on device as Float32 (SVector stripped)
-        u0_vec = (Float32.(Vector(ode_problem.u0)))
- 
-        return function pinn_ode(u, p, t)
-            # u is Float64 from the ODE solver — convert to Float32 for GPU NN call
-            nn_input  = _to_device(Float32.(u))
-            nn_output = Float64.(_to_cpu(nn(nn_input, p, st)[1]))  # back to Float64
-
-            du_physics = Zygote.ignore() do
-                Vector{Float64}(ode_problems[idx].f(
-                    Vector{Float64}(u), ode_params, t))
-            end
-
-            correction = map(1:n_states) do i
-                k = corr_mask[i]
-                k == 0 ? zero(Float64) :
-                        Float64(nn_out_weight) * nn_output[k]
-            end
-
-            return du_physics .+ correction
-        end
-    end
 
     function predict_all(p_NN)
-        map(eachindex(ode_problems)) do idx
-            pinn_ode = make_pinn_ode(idx)
-            u0_vec = Float64.(Vector(ode_problems[idx].u0))  # back to Float64
-            tspan  = ode_problems[idx].tspan                 # already Float64
-            prob   = ODEProblem(pinn_ode, u0_vec, tspan, p_NN)
-            solve(prob, Vern7();
-                saveat   = parameters.training_time,         # Float64
-                dtmax    = parameters.dtmax,                 # Float64
-                reltol   = 1e-6,                             # Float64
-                abstol   = 1e-6,                             # Float64
+        map(1:length(ode_problems)) do idx
+            prob_i   = ode_problems[idx]
+            params_i = ode_params_list[idx]
+            u0_vec   = Float64.(Vector(prob_i.u0))
+
+            function pinn_ode(u, p, t)
+                nn_out = Float64.(nn(Float32.(u), p, st)[1])
+                du_physics = Zygote.ignore() do
+                    Vector{Float64}(prob_i.f(Float64.(u), params_i, t))
+                end
+                correction = [i in nn_vars ?
+                            Float64(nn_out_weight) * nn_out[findfirst(==(i), nn_vars)] :
+                            zero(eltype(p))
+                            for i in 1:length(u0_vec)]
+                return du_physics .+ correction
+            end
+            solve(ODEProblem(pinn_ode, u0_vec, prob_i.tspan, p_NN),
+                Vern7();
+                saveat   = parameters.training_time,
+                dtmax    = parameters.dtmax,
+                reltol   = 1e-6,
+                abstol   = 1e-6,
                 sensealg = InterpolatingAdjoint(autojacvec=ZygoteVJP()))
         end
     end
-
+        
     last_ctxs = Ref{Any}(nothing)
  
     function build_ctx_all(p)
         sols = predict_all(p)
-        # Serial map inside gradient tape — Zygote-safe
-        map(eachindex(ode_problems)) do i
-            sol       = sols[i]
-            sol_arr   = Float32.(_to_cpu(Array(sol))')
-            pred_norm = (sol_arr .- U_MEAN_cpu') ./ U_STD_cpu'
+        map(1:length(ode_problems)) do i
+            sol_arr = Float32.(Array(sols[i])')   # (T × n_states)
+            pred_norm        = (sol_arr .- U_MEAN_cpu') ./ U_STD_cpu'
+            patient_target   = target_f32[[i], :]
+            patient_data_norm = (patient_target .- U_MEAN_cpu') ./ U_STD_cpu'
             (
-                sol            = sol,
+                sol            = sols[i],
                 pred_mat       = sol_arr,
                 pred_norm      = pred_norm,
-                data_norm      = _to_cpu(data_norm),
-                target_data    = target_f32,
+                data_norm      = patient_data_norm,
+                target_data    = patient_target,
                 training_steps = parameters.training_time,
                 ode_params     = ode_params_list[i],
                 ode_problem    = ode_problems[i],
@@ -149,7 +142,7 @@ function PINN_Infuser_f(
             )
         end
     end
- 
+    
     # ── 8. Threaded loss reduction helper ────────────────────────────────────
     function compute_avg_loss(ctxs, p)
         n = length(ctxs)
@@ -256,4 +249,3 @@ function PINN_Infuser_f(
 end
  
 end # module PINNInfuserMod
- 
