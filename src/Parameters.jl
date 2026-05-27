@@ -12,13 +12,13 @@ number_of_patients = 5
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
-    "$(number_of_patients)data",             #1
-    "$(number_of_patients)data&physics",     #2
-    "$(number_of_patients)data&mass",        #3
-    "$(number_of_patients)data&zero_mean",   #4
-    "$(number_of_patients)data&negativity",  #5
-    "$(number_of_patients)data&firstderiv",  #6
-    "$(number_of_patients)data&periodicity"  #7
+    "data",             #1
+    "data&physics",     #2
+    "data&mass",        #3
+    "data&zero_mean",   #4
+    "data&negativity",  #5
+    "data&firstderiv",  #6
+    "data&periodicity"  #7
 ]
 
 active = i == 1 ? [actives[1]] : [actives[1], actives[i]]
@@ -27,7 +27,7 @@ changeable = (
     working_on = working_on,
     name = names[i],
     active = active,
-    early_stopping_start = 20,
+    early_stopping_start = 10,
     range_to_plot = 5.0,
     number_of_patients = number_of_patients
 )

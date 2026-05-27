@@ -94,7 +94,7 @@ function PINN_Infuser_f(
         map(1:length(ode_problems)) do idx
             prob_i   = ode_problems[idx]
             params_i = ode_params_list[idx]
-            u0_vec   = Float64.(Vector(prob_i.u0))
+            u0_vec   = Float32.(Vector(prob_i.u0))
 
             function pinn_ode(u, p, t)
                 nn_out = Float64.(nn(Float32.(u), p, st)[1])
