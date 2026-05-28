@@ -1,0 +1,19 @@
+WARNING: Method definition rrule(typeof(Base.merge), T1, T2) where {T1<:(NamedTuple{names, T} where T<:Tuple where names), T2<:(NamedTuple{names, T} where T<:Tuple where names)} in module Lux at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/68T9j/src/chainrules.jl:17 overwritten in module ChainRules at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ChainRules/esTf8/src/rulesets/Base/base.jl:313.
+ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
+WARNING: replacing module ParametersMod.
+WARNING: ignoring conflicting import of ParametersMod.parameters into PINNInfuserMod
+┌ Warning: CUDA/LuxCUDA not available, falling back to CPU.
+│   err =
+│    MethodError: no method matching functional(::Bool)
+│    The applicable method may be too new: running in world age 32136, while current world is 32178.
+│    
+│    Closest candidates are:
+│      functional(::Bool) (method too new to be called from this world context.)
+│       @ CUDA ~/.julia/packages/CUDA/2kjXI/src/initialization.jl:20
+│      functional() (method too new to be called from this world context.)
+│       @ CUDA ~/.julia/packages/CUDA/2kjXI/src/initialization.jl:20
+│    
+└ @ Main.LibInfuser.PINNInfuserMod /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/src/PINN_Infuser.jl:34
+[ Info: Starting optimisation | gpu=false | threads=8
+[ Info: Early stopping at iter 19, loss=1.2420647
+[ Info: Model saved successfully to pinn_data&periodicity.jld2
