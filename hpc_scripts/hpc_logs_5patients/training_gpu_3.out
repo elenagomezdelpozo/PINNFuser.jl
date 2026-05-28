@@ -1,0 +1,87 @@
+Array task: 3
+Node: ag0007
+GPUs: 0
+Thu May 28 10:44:49 2026       
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 535.274.02             Driver Version: 535.274.02   CUDA Version: 12.2     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  Tesla V100-SXM2-32GB           On  | 00000000:B5:00.0 Off |                    0 |
+| N/A   40C    P0              43W / 300W |      0MiB / 32768MiB |      0%      Default |
+|                                         |                      |                  N/A |
++-----------------------------------------+----------------------+----------------------+
+                                                                                         
++---------------------------------------------------------------------------------------+
+| Processes:                                                                            |
+|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+|        ID   ID                                                             Usage      |
+|=======================================================================================|
+|  No running processes found                                                           |
++---------------------------------------------------------------------------------------+
+  [fwd] call=1 loss=computing…
+  [fwd] call=1 loss=1.4326
+
+Iter 1 | avg_loss: 1.43258 | threads=8 | gpu=true
+  [fwd] call=2 loss=computing…
+  [fwd] call=2 loss=1.396
+
+Iter 2 | avg_loss: 1.39599 | threads=8 | gpu=true
+  [fwd] call=3 loss=computing…
+  [fwd] call=3 loss=1.3909
+
+Iter 3 | avg_loss: 1.39092 | threads=8 | gpu=true
+  [fwd] call=4 loss=computing…
+  [fwd] call=4 loss=1.3857
+
+Iter 4 | avg_loss: 1.38567 | threads=8 | gpu=true
+  [fwd] call=5 loss=computing…
+  [fwd] call=5 loss=1.3751
+
+Iter 5 | avg_loss: 1.37511 | threads=8 | gpu=true
+  [fwd] call=6 loss=computing…
+  [fwd] call=6 loss=1.3498
+
+Iter 6 | avg_loss: 1.34982 | threads=8 | gpu=true
+  [fwd] call=7 loss=computing…
+  [fwd] call=7 loss=1.3474
+
+Iter 7 | avg_loss: 1.34745 | threads=8 | gpu=true
+  [fwd] call=8 loss=computing…
+  [fwd] call=8 loss=1.3381
+
+Iter 8 | avg_loss: 1.33809 | threads=8 | gpu=true
+  [fwd] call=9 loss=computing…
+  [fwd] call=9 loss=1.3393
+
+Iter 9 | avg_loss: 1.33933 | threads=8 | gpu=true
+  [fwd] call=10 loss=computing…
+  [fwd] call=10 loss=1.3469
+
+Iter 10 | avg_loss: 1.34692 | threads=8 | gpu=true
+  [fwd] call=11 loss=computing…
+  [fwd] call=11 loss=1.3284
+
+Iter 11 | avg_loss: 1.3284 | threads=8 | gpu=true
+  [fwd] call=12 loss=computing…
+  [fwd] call=12 loss=1.3177
+
+Iter 12 | avg_loss: 1.31766 | threads=8 | gpu=true
+  [fwd] call=13 loss=computing…
+  [fwd] call=13 loss=1.3069
+
+Iter 13 | avg_loss: 1.30691 | threads=8 | gpu=true
+  [fwd] call=14 loss=computing…
+  [fwd] call=14 loss=1.2998
+
+Iter 14 | avg_loss: 1.29977 | threads=8 | gpu=true
+  [fwd] call=15 loss=computing…
+  [fwd] call=15 loss=1.2813
+
+Iter 15 | avg_loss: 1.28127 | threads=8 | gpu=true
+  [fwd] call=16 loss=computing…
+  [fwd] call=16 loss=1.3153
+
+Iter 16 | avg_loss: 1.31526 | threads=8 | gpu=true
