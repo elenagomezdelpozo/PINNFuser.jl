@@ -154,6 +154,7 @@ function PINN_Infuser_f(
                     nn             = nn,
                     st             = st,
                 )
+                @info length(sol_arr)
             end
         end
         

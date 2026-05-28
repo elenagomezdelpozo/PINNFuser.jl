@@ -6,8 +6,8 @@ using Lux
 
 working_on = "hpc" # CHANGE "hpc" or "local"
 
-#i = parse(Int, ARGS[1])
-i = 6
+i = parse(Int, ARGS[1])
+# i = 6
 
 number_of_patients = 50
 
