@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=pinn_infuser_25
+#SBATCH --job-name=pinn_infuser_50
 #SBATCH --partition=plgrid-gpu-v100
 #SBATCH -A plgsanomodeling2-gpu
 #SBATCH --nodes=1
@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=7G
 #SBATCH --gres=gpu:1
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00
 #SBATCH --output=hpc_scripts/hpc_logs/training_gpu_%a.out
 #SBATCH --error=hpc_scripts/hpc_logs/training_gpu_%a.err
 #SBATCH --array=1-7

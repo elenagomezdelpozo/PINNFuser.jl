@@ -15,10 +15,11 @@ include("Parameters.jl")
 using .ParametersMod: parameters
 
 if parameters.working_on == "hpc"
+    using Lux, LuxCUDA, CUDA
     const CUDA_AVAILABLE = Ref(false)
     function _try_load_cuda()
         try
-            @eval using CUDA, Lux, LuxCUDA, CUDA
+            @eval using CUDA
             CUDA.allowscalar(false)
 
             if CUDA.functional(true)
@@ -92,6 +93,7 @@ function PINN_Infuser_f(
         nn_out_weight = Float32(parameters.nn_output_weight)
 
         call_count = Ref(0)
+        curriculum_α = Ref(0.0f0)
         log_buffer = String[]          # batch prints; flushed every callback
 
         function predict_all(p_NN)
@@ -143,6 +145,7 @@ function PINN_Infuser_f(
                     p_NN           = p,
                     nn             = nn,
                     st             = st,
+                    curriculum_α   = curriculum_α[],    
                 )
             end
         end
@@ -222,14 +225,14 @@ function PINN_Infuser_f(
             push!(losses, Float32(avg_loss))
 
             iter = length(losses)
-            println("\nIter $iter | avg_loss: $(round(avg_loss, sigdigits=6)) " *
-                    "| threads=$(nthreads()) | gpu=$(CUDA_AVAILABLE[])")
-
+            curriculum_α[] = min(1.0f0, Float32(iter) / parameters.curriculum_switch_iters)
+            println("\nIter $iter | avg_loss: ... | α=$(round(curriculum_α[], digits=3))")
+    
             # ── Early stopping ───────────────────────────────────────────────────
             if early_stopping && iter > parameters.early_stopping_start
                 recent = losses[max(1, end-5) : end-1]
                 if losses[end] > maximum(recent) ||
-                losses[end] > minimum(recent) + 1f-3
+                losses[end] > minimum(recent) + parameters.min_loss
                     @info "Early stopping at iter $iter, loss=$(losses[end])"
                     return true
                 end

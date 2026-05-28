@@ -6,8 +6,21 @@ using SciMLBase, Statistics, Zygote
 
 export loss
 
-function data_loss(pred_norm, data_norm, data_vars, data_weight)
-    return data_weight * sum(mean(abs2, pred_norm[:, j] .- data_norm[:, j]) for j in data_vars)
+# Curriculum learning: α goes from 0 to 1 over the first half of training, then stays at 1
+# This way we start by focusing on the mean trajectory and gradually shift towards a step by step comparison
+function data_loss(pred_norm, data_norm, data_vars, data_weight, curriculum_α)
+    mean_l     = zero(eltype(pred_norm))
+    detailed_l = zero(eltype(pred_norm))
+
+    for j in data_vars
+        mean_l     += abs2(mean(pred_norm[:, j]) - mean(data_norm[:, j]))
+        detailed_l += mean(abs2, pred_norm[:, j] .- data_norm[:, j])
+    end
+
+    l = (1 - curriculum_α) * mean_l / length(data_vars) +
+            curriculum_α  * detailed_l / length(data_vars)
+
+    return data_weight * l
 end
 
 function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physics_weight, ode_problem)
@@ -90,7 +103,8 @@ function loss(active::Vector{String}, ctx, config)
     for key in active
         val = if key == "data"   
                 data_loss(ctx.pred_norm, ctx.data_norm, 
-                            config.data_vars, config.data_weight)   
+                            config.data_vars, config.data_weight, 
+                            ctx.curriculum_α)   
                 elseif key == "physics"
                     physics_loss(ctx.pred_mat, ctx.training_steps,
                                 ctx.ode_params, config.physics_vars,
