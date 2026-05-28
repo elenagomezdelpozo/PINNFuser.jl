@@ -9,7 +9,7 @@ working_on = "local" # CHANGE "hpc" or "local"
 # i = parse(Int, ARGS[1])
 i = 7
 
-number_of_patients = 5
+number_of_patients = 25
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [

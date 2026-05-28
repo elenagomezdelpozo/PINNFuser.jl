@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=pinn_infuser
+#SBATCH --job-name=pinn_infuser_25
 #SBATCH --partition=plgrid-gpu-v100
 #SBATCH -A plgsanomodeling2-gpu
 #SBATCH --nodes=1

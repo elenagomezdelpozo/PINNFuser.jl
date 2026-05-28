@@ -105,3 +105,19 @@ Iter 17 | avg_loss: 1.18086 | threads=8 | gpu=true
 Iter 18 | avg_loss: 1.1633 | threads=8 | gpu=true
   [fwd] call=19 loss=computing…
   [fwd] call=19 loss=1.1462
+
+Iter 19 | avg_loss: 1.14615 | threads=8 | gpu=true
+  [fwd] call=20 loss=computing…
+  [fwd] call=20 loss=1.1289
+
+Iter 20 | avg_loss: 1.12885 | threads=8 | gpu=true
+  [fwd] call=21 loss=computing…
+  [fwd] call=21 loss=1.1124
+
+Iter 21 | avg_loss: 1.11243 | threads=8 | gpu=true
+  [fwd] call=22 loss=computing…
+  [fwd] call=22 loss=1.0982
+
+Iter 22 | avg_loss: 1.09816 | threads=8 | gpu=true
+  [fwd] call=23 loss=computing…
+  [fwd] call=23 loss=1.0851
