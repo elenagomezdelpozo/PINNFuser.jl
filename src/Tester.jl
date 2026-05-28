@@ -23,6 +23,7 @@ using Random
 
 
 function Tester_f(name, ode_parameters; test = false)
+    name = "pinn_$(parameters.number_of_patients)_$(name)_hpc"
     data = load(parameters.savepath)
     trained_st = data["trained_st"]
     trained_p = data["trained_p"]

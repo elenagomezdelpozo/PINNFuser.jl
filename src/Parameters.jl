@@ -4,10 +4,10 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "hpc" # CHANGE "hpc" or "local"
+working_on = "local" # CHANGE "hpc" or "local"
 
-i = parse(Int, ARGS[1])
-# i = 1
+# i = parse(Int, ARGS[1])
+i = 7
 
 number_of_patients = 5
 
@@ -41,7 +41,7 @@ if working_on == "hpc"
 elseif working_on == "local"
     loaded_data = readdlm("data/target_data.txt")
     plotting = true
-    savepath = "trainings/pinn_$(number_of_patients)_$(changeable.name)_$(working_on).jld2"
+    savepath = "trainings/pinn_$(number_of_patients)_$(changeable.name)_hpc.jld2"
 end
 
 training = (
