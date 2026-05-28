@@ -1,2 +1,0 @@
-WARNING: Method definition rrule(typeof(Base.merge), T1, T2) where {T1<:(NamedTuple{names, T} where T<:Tuple where names), T2<:(NamedTuple{names, T} where T<:Tuple where names)} in module Lux at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/68T9j/src/chainrules.jl:17 overwritten in module ChainRules at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ChainRules/esTf8/src/rulesets/Base/base.jl:313.
-ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
