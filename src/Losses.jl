@@ -79,13 +79,12 @@ function negativity_loss(pred_mat, neg_vars, neg_weight)
     return neg_weight * l
 end
 
-function firstderiv_loss(pred_mat, target_data, firstderiv_vars, training_steps, deriv_weight)
+function firstderiv_loss(pred_mat, firstderiv_vars, training_steps, deriv_weight)
     dt = training_steps[2] - training_steps[1]
     l  = zero(eltype(pred_mat))
     for j in firstderiv_vars
-        dpred   = diff(pred_mat[:, j],    dims=1) ./ dt
-        dtarget = diff(target_data[:, j], dims=1) ./ dt
-        l += mean(abs2, dpred .- dtarget)
+        dpred = diff(pred_mat[:, j], dims=1) ./ dt
+        l += mean(abs2, dpred)   # penalise large derivatives in prediction
     end
     return deriv_weight * l
 end
