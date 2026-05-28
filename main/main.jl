@@ -13,6 +13,7 @@ name = parameters.name
 nn_vars = parameters.vars
 NN = parameters.NN
 
+@info "Starting training for $(parameters.name) with $(parameters.number_of_patients) patients on $(parameters.working_on)..."
 trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
     patients_odes,
     patients_params,

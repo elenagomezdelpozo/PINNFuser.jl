@@ -15,10 +15,11 @@ include("Parameters.jl")
 using .ParametersMod: parameters
 
 if parameters.working_on == "hpc"
+    using Lux, LuxCUDA, CUDA
     const CUDA_AVAILABLE = Ref(false)
     function _try_load_cuda()
         try
-            @eval using CUDA, Lux, LuxCUDA, CUDA
+            @eval using CUDA
             CUDA.allowscalar(false)
 
             if CUDA.functional(true)
@@ -46,6 +47,7 @@ if parameters.working_on == "hpc"
     _to_device(x) = CUDA_AVAILABLE[] ? CUDA.cu(x) : x
     _to_cpu(x)    = CUDA_AVAILABLE[] ? Array(x)   : x
 
+    # Build a mask to identify which state variables are corrected by the NN
     function _build_correction_mask(nn_vars, n_states)
         mask = zeros(Int, n_states)
         if !isnothing(nn_vars)
@@ -71,7 +73,8 @@ function PINN_Infuser_f(
 )::Tuple{Any,Any,Any}
     if parameters.working_on == "hpc"
         _try_load_cuda()
-
+        
+        # For normalization
         U_MEAN_cpu = vec(mean(target_data, dims=1))
         U_STD_cpu  = vec(std(target_data,  dims=1)) .+ 1f-6
 
@@ -81,25 +84,30 @@ function PINN_Infuser_f(
         U_STD       = _to_device(Float32.(U_STD_cpu))
         data_norm   = _to_device((target_f32 .- U_MEAN_cpu') ./ U_STD_cpu')
 
+        # Initialize NN parameters and state; move them to device
         rng  = StableRNG(parameters.seed)
         p_NN_raw, st = Lux.setup(rng, nn)
-        
         st = p_NN_raw  |> cpu_device()   
         p_NN = Float32(parameters.initialisation) .* ComponentVector{Float32}(p_NN_raw)
 
+        # Correction mask and NN output scaling
         n_states      = length(ode_problems[1].u0)
         corr_mask     = _build_correction_mask(nn_vars, n_states)
         nn_out_weight = Float32(parameters.nn_output_weight)
 
+        # For logs
         call_count = Ref(0)
         log_buffer = String[]          # batch prints; flushed every callback
 
+        # ── 6. Prediction function for all patients ───────────────────────────────
         function predict_all(p_NN)
+            # Do this for each patient and return a vector of solutions
             map(1:length(ode_problems)) do idx
                 prob_i   = ode_problems[idx]
                 params_i = ode_params_list[idx]
                 u0_vec   = Float32.(Vector(prob_i.u0))
 
+                # Modify ODE with NN correction
                 function pinn_ode(u, p, t)
                     nn_out = Float64.(nn(Float32.(u), p, st)[1])
                     du_physics = Zygote.ignore() do
@@ -111,6 +119,7 @@ function PINN_Infuser_f(
                                 for i in 1:length(u0_vec)]
                     return du_physics .+ correction
                 end
+                # Solve the new ODE with the NN correction
                 solve(ODEProblem(pinn_ode, u0_vec, prob_i.tspan, p_NN),
                     Vern7();
                     saveat   = parameters.training_time,
@@ -123,6 +132,7 @@ function PINN_Infuser_f(
             
         last_ctxs = Ref{Any}(nothing)
 
+        # ── 7. Context builder for all patients ─────────────────────────────────
         function build_ctx_all(p)
             sols = predict_all(p)
             map(1:length(ode_problems)) do i

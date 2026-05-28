@@ -7,7 +7,9 @@ using SciMLBase, Statistics, Zygote
 export loss
 
 function data_loss(pred_norm, data_norm, data_vars, data_weight)
-    return data_weight * sum(mean(abs2, pred_norm[:, j] .- data_norm[:, j]) for j in data_vars)
+    return data_weight * sum(
+        abs2(pred_norm[end, j] - data_norm[1, j]) for j in data_vars
+    )
 end
 
 function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physics_weight, ode_problem)
@@ -66,13 +68,12 @@ function negativity_loss(pred_mat, neg_vars, neg_weight)
     return neg_weight * l
 end
 
-function firstderiv_loss(pred_mat, target_data, firstderiv_vars, training_steps, deriv_weight)
+function firstderiv_loss(pred_mat, firstderiv_vars, training_steps, deriv_weight)
     dt = training_steps[2] - training_steps[1]
     l  = zero(eltype(pred_mat))
     for j in firstderiv_vars
-        dpred   = diff(pred_mat[:, j],    dims=1) ./ dt
-        dtarget = diff(target_data[:, j], dims=1) ./ dt
-        l += mean(abs2, dpred .- dtarget)
+        dpred = diff(pred_mat[:, j], dims=1) ./ dt
+        l += mean(abs2, dpred)   # penalise large derivatives in prediction
     end
     return deriv_weight * l
 end
@@ -104,8 +105,7 @@ function loss(active::Vector{String}, ctx, config)
                 elseif key == "negativity"
                     negativity_loss(ctx.pred_mat, config.neg_vars, config.neg_weight)
                 elseif key == "firstderiv"
-                    firstderiv_loss(ctx.pred_mat, ctx.target_data,
-                                    config.firstderiv_vars,
+                    firstderiv_loss(ctx.pred_mat, config.firstderiv_vars,
                                     ctx.training_steps, config.deriv_weight)
                 elseif key == "periodicity"
                     periodicity_loss(ctx.pred_mat, config.periodic_weight,
