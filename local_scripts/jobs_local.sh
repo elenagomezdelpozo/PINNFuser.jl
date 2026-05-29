@@ -1,3 +1,3 @@
 for i in {1..7}; do
-    julia main/main.jl $i
+    julia local_scripts/Test.jl $i
 done
