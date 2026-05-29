@@ -1,0 +1,67 @@
+Array task: 5
+Node: ag0002
+GPUs: 0
+Thu May 28 16:51:11 2026       
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 535.274.02             Driver Version: 535.274.02   CUDA Version: 12.2     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  Tesla V100-SXM2-32GB           On  | 00000000:2D:00.0 Off |                    0 |
+| N/A   38C    P0              42W / 300W |      0MiB / 32768MiB |      0%      Default |
+|                                         |                      |                  N/A |
++-----------------------------------------+----------------------+----------------------+
+                                                                                         
++---------------------------------------------------------------------------------------+
+| Processes:                                                                            |
+|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+|        ID   ID                                                             Usage      |
+|=======================================================================================|
+|  No running processes found                                                           |
++---------------------------------------------------------------------------------------+
+  [fwd] call=1 loss=computing…
+  [fwd] call=1 loss=0.32383
+
+Iter 1 | avg_loss: ... | α=0.05
+  [fwd] call=2 loss=computing…
+  [fwd] call=2 loss=0.32372
+
+Iter 2 | avg_loss: ... | α=0.1
+  [fwd] call=3 loss=computing…
+  [fwd] call=3 loss=0.32386
+
+Iter 3 | avg_loss: ... | α=0.15
+  [fwd] call=4 loss=computing…
+  [fwd] call=4 loss=0.32412
+
+Iter 4 | avg_loss: ... | α=0.2
+  [fwd] call=5 loss=computing…
+  [fwd] call=5 loss=0.32462
+
+Iter 5 | avg_loss: ... | α=0.25
+  [fwd] call=6 loss=computing…
+  [fwd] call=6 loss=0.32516
+
+Iter 6 | avg_loss: ... | α=0.3
+  [fwd] call=7 loss=computing…
+  [fwd] call=7 loss=0.32592
+
+Iter 7 | avg_loss: ... | α=0.35
+  [fwd] call=8 loss=computing…
+  [fwd] call=8 loss=0.32678
+
+Iter 8 | avg_loss: ... | α=0.4
+  [fwd] call=9 loss=computing…
+  [fwd] call=9 loss=0.32789
+
+Iter 9 | avg_loss: ... | α=0.45
+  [fwd] call=10 loss=computing…
+  [fwd] call=10 loss=0.32903
+
+Iter 10 | avg_loss: ... | α=0.5
+  [fwd] call=11 loss=computing…
+  [fwd] call=11 loss=0.33068
+
+Iter 11 | avg_loss: ... | α=0.55

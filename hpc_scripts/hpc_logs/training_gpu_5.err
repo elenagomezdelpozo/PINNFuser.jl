@@ -1,0 +1,73 @@
+WARNING: Method definition rrule(typeof(Base.merge), T1, T2) where {T1<:(NamedTuple{names, T} where T<:Tuple where names), T2<:(NamedTuple{names, T} where T<:Tuple where names)} in module Lux at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/68T9j/src/chainrules.jl:17 overwritten in module ChainRules at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ChainRules/esTf8/src/rulesets/Base/base.jl:313.
+ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
+WARNING: replacing module ParametersMod.
+WARNING: ignoring conflicting import of ParametersMod.parameters into PINNInfuserMod
+[ Info: CUDA functional
+[ Info: Starting optimisation | gpu=true | threads=8
+[ Info: Early stopping at iter 11, loss=0.3306802
+┌ Warning: Opening file with JLD2.MmapIO failed, falling back to IOStream
+└ @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:153
+ERROR: LoadError: SystemError: opening file "/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/trainings/pinn_50_data&negativity_hpc.jld2": No such file or directory
+Stacktrace:
+  [1] systemerror(p::String, errno::Int32; extrainfo::Nothing)
+    @ Base ./error.jl:176
+  [2] systemerror
+    @ ./error.jl:176
+  [3] systemerror
+    @ Base ./error.jl:175 [inlined]
+  [4] open(fname::String; lock::Bool, read::Bool, write::Bool, create::Bool, truncate::Bool, append::Bool)
+    @ Base ./iostream.jl:293
+  [5] open
+    @ Base ./iostream.jl:275 [inlined]
+  [6] openfile
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:143 [inlined]
+  [7] openfile(T::Type, fname::String, wr::Bool, create::Bool, truncate::Bool, fallback::Type)
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:154
+  [8] jldopen(fname::String, wr::Bool, create::Bool, truncate::Bool, iotype::Type{JLD2.MmapIO}; fallback::Type{IOStream}, compress::Bool, mmaparrays::Bool, typemap::Dict{String, Any}, parallel_read::Bool, plain::Bool)
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:215
+  [9] jldopen
+    @ ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:164 [inlined]
+ [10] #jldopen#23
+    @ ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:286 [inlined]
+ [11] jldopen
+    @ ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:279 [inlined]
+ [12] jldsave(filename::String, compress::Bool, iotype::Type{JLD2.MmapIO}; kwargs...)
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/loadsave.jl:286
+ [13] jldsave
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/loadsave.jl:283 [inlined]
+ [14] top-level scope
+    @ /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/main/main.jl:29
+in expression starting at /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/main/main.jl:29
+
+caused by: SystemError: opening file "/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/trainings/pinn_50_data&negativity_hpc.jld2": No such file or directory
+Stacktrace:
+  [1] systemerror(p::String, errno::Int32; extrainfo::Nothing)
+    @ Base ./error.jl:176
+  [2] systemerror
+    @ ./error.jl:176
+  [3] systemerror
+    @ Base ./error.jl:175 [inlined]
+  [4] open(fname::String; lock::Bool, read::Bool, write::Bool, create::Bool, truncate::Bool, append::Bool)
+    @ Base ./iostream.jl:293
+  [5] open
+    @ Base ./iostream.jl:275 [inlined]
+  [6] JLD2.MmapIO(fname::String, write::Bool, create::Bool, truncate::Bool)
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/io/mmapio.jl:101
+  [7] openfile
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:146 [inlined]
+  [8] openfile(T::Type, fname::String, wr::Bool, create::Bool, truncate::Bool, fallback::Type)
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:151
+  [9] jldopen(fname::String, wr::Bool, create::Bool, truncate::Bool, iotype::Type{JLD2.MmapIO}; fallback::Type{IOStream}, compress::Bool, mmaparrays::Bool, typemap::Dict{String, Any}, parallel_read::Bool, plain::Bool)
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:215
+ [10] jldopen
+    @ ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:164 [inlined]
+ [11] #jldopen#23
+    @ ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:286 [inlined]
+ [12] jldopen
+    @ ~/.julia/packages/JLD2/KyKLQ/src/JLD2.jl:279 [inlined]
+ [13] jldsave(filename::String, compress::Bool, iotype::Type{JLD2.MmapIO}; kwargs...)
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/loadsave.jl:286
+ [14] jldsave
+    @ JLD2 ~/.julia/packages/JLD2/KyKLQ/src/loadsave.jl:283 [inlined]
+ [15] top-level scope
+    @ /net/afscra/people/plgelenagdelpozo/PINNFuser.jl/main/main.jl:29
