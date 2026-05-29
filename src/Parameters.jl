@@ -6,10 +6,10 @@ using Lux
 
 working_on = "hpc" # CHANGE "hpc" or "local"
 
-i = parse(Int, ARGS[1])
-# i = 6
+# i = parse(Int, ARGS[1])
+i = 6
 
-number_of_patients = 50
+number_of_patients = 5
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
@@ -30,7 +30,7 @@ changeable = (
     active = active,
     early_stopping_start = 10,
     range_to_plot = 5.0,
-    number_of_patients = number_of_patients[j]
+    number_of_patients = number_of_patients
 )
 
 if working_on == "hpc"

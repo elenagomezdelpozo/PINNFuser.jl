@@ -20,7 +20,7 @@ if parameters.working_on == "hpc"
     function _try_load_cuda()
         try
             @eval using CUDA
-            CUDA.allowscalar(false)
+            CUDA.allowscalar(false) 
 
             if CUDA.functional(true)
                 CUDA_AVAILABLE[] = true
@@ -154,7 +154,6 @@ function PINN_Infuser_f(
                     nn             = nn,
                     st             = st,
                 )
-                @info length(sol_arr)
             end
         end
         
