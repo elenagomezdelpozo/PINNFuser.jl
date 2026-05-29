@@ -4,12 +4,12 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "hpc" # CHANGE "hpc" or "local"
+working_on = "local" # CHANGE "hpc" or "local"
 
-i = parse(Int, ARGS[1])
-# i = 1
+# i = parse(Int, ARGS[1])
+i = 1
 
-number_of_patients = 50
+number_of_patients = 5
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
