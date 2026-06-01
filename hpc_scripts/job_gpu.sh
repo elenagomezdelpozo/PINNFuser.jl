@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=7G
 #SBATCH --gres=gpu:1
-#SBATCH --time=08:00:00
+#SBATCH --time=10:00:00
 #SBATCH --output=hpc_scripts/hpc_logs/training_gpu_%a.out
 #SBATCH --error=hpc_scripts/hpc_logs/training_gpu_%a.err
 #SBATCH --array=1-7

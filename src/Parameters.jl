@@ -4,12 +4,12 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "local" # CHANGE "hpc" or "local"
+working_on = "hpc" # CHANGE "hpc" or "local"
 
 # i = parse(Int, ARGS[1])
 i = 1
 
-number_of_patients = 5
+number_of_patients = 50
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
@@ -98,7 +98,7 @@ config = (
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1e-5,
     curriculum_switch_iters = 20,
-    min_loss = 1e-4
+    min_loss = 1e-6
 )
 
 NN = Lux.Chain(
