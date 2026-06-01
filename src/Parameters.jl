@@ -4,7 +4,7 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "hpc" # CHANGE "hpc" or "local"
+working_on = "local" # CHANGE "hpc" or "local"
 
 # i = parse(Int, ARGS[1])
 i = 1
@@ -76,6 +76,7 @@ Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.od
 
 num_of_samples_tsteps = Int(independent.num_of_samples_per_cycle * (independent.tspan[2] - independent.tspan[1])) 
 tsteps = range(independent.tspan[1], independent.tspan[2], length = num_of_samples_tsteps)
+dt = tsteps[2] - tsteps[1]
 extrap_original_data = Array{Float64}(loaded_data)[
     1:Int(floor(independent.extrapolation_tspan[2] * independent.num_of_samples_per_cycle)), :
 ]
@@ -89,7 +90,7 @@ config = (
     physics_vars = [1, 2, 3],
     physics_weight = 1e-5,
     mass_conservation_weight = 1.0,
-    zm_vars = [1, 2, 3, 4, 5, 6],
+    zm_vars = nn_vars,
     zm_weight = 1e-5,
     neg_vars = [5, 6],
     neg_weight = 10.0,
@@ -98,7 +99,8 @@ config = (
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1e-5,
     curriculum_switch_iters = 20,
-    min_loss = 1e-6
+    min_loss = 1e-6,
+    dt = dt
 )
 
 NN = Lux.Chain(

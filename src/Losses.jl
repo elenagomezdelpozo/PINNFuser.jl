@@ -23,29 +23,37 @@ function data_loss(pred_norm, data_norm, data_vars, data_weight, curriculum_α)
     return data_weight * l
 end
 
-function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physics_weight, ode_problem)
+function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physics_weight, ode_problem, nn, p_NN, st)
     dt = training_steps[2] - training_steps[1]
     n  = size(pred_mat, 1)
     l  = zero(eltype(pred_mat))
+
     du_scale = Zygote.ignore() do
         vec(std(diff(Array(pred_mat), dims=1) ./ dt, dims=1)) .+ 1e-6
     end
+
     for i in 2:n-1
         t  = training_steps[i]
         u  = pred_mat[i, :]
+
         du_ode = Zygote.ignore() do
             Vector{Float64}(ode_problem.f(Vector{Float64}(u), ode_params, t))
         end
+
+        nn_contrib = nn(u, p_NN, st)[1]  # NN correction, must stay in AD graph
         du_num = (pred_mat[i+1, :] .- pred_mat[i-1, :]) ./ (2 * dt)
+
         for j in physics_vars
-            l += abs2((du_num[j] - du_ode[j]) / du_scale[j])
+            residual = du_num[j] - (du_ode[j] + nn_contrib[j])
+            l += abs2(residual / du_scale[j])
         end
     end
+
     return physics_weight * l / (n - 2)
 end
 
 function mass_conservation_loss(pred_mat, training_steps, mass_conservation_weight)
-    dt = training_steps[2] - training_steps[1]
+    dt = config.dt
     Qav, Qmv, Qs, Qsv = pred_mat[:, 7], pred_mat[:, 8], pred_mat[:, 9], pred_mat[:, 10]
 
     ∫Qav  = sum((Qav[1:end-1]  .+ Qav[2:end])  ./ 2) * dt
@@ -53,40 +61,46 @@ function mass_conservation_loss(pred_mat, training_steps, mass_conservation_weig
     ∫Qs   = sum((Qs[1:end-1]   .+ Qs[2:end])   ./ 2) * dt
     ∫Qsv  = sum((Qsv[1:end-1]  .+ Qsv[2:end])  ./ 2) * dt
 
-    mean_flow = (∫Qav + ∫Qmv + ∫Qs + ∫Qsv) / 4
-    l = abs2(∫Qav - mean_flow) + abs2(∫Qmv - mean_flow) +
-        abs2(∫Qs  - mean_flow) + abs2(∫Qsv - mean_flow)
-
-    return mass_conservation_weight * l
+    mean_flows = (∫Qav , ∫Qmv , ∫Qs , ∫Qsv) 
+    l = zero(eltype(pred_mat))
+    # Comparing all pairs of mean flows: (av-mv, av-s, av-sv, mv-s, mv-sv, s-sv)
+    for i in 1:3
+        for j in i+1:4
+            l += abs2(mean_flows[i] - mean_flows[j])
+        end
+    end
+    return mass_conservation_weight * l / 6 # 6 pairs
 end
 
 function zero_mean_loss(u_mat, p_NN, nn, st, nn_vars, zm_vars, zm_weight)
     l = zero(eltype(u_mat))
+    time = size(u_mat, 1)
     for (k, i) in enumerate(nn_vars)
         if i in zm_vars
-            nn_over_time = [nn(u_mat[ti, :], p_NN, st)[1][k] for ti in 1:size(u_mat, 1)]
-            l += abs2(sum(nn_over_time))
+            nn_over_time = [nn(u_mat[ti, :], p_NN, st)[1][k] for ti in 1:time]
+            l += abs2(mean(nn_over_time))
         end
     end
-    return zm_weight * l
+    return zm_weight * l / length(zm_vars)
 end
 
 function negativity_loss(pred_mat, neg_vars, neg_weight)
     l = zero(eltype(pred_mat)) 
     for j in neg_vars
-        l += abs2(sum(min.(pred_mat[:, j], 0.0)))
+        l += mean(abs2, min.(pred_mat[:, j], zero(eltype(pred_mat))))
     end
     return neg_weight * l
 end
 
-function firstderiv_loss(pred_mat, firstderiv_vars, training_steps, deriv_weight)
-    dt = training_steps[2] - training_steps[1]
+function firstderiv_loss(pred_mat, target_data, firstderiv_vars, training_steps, deriv_weight)
+    dt = config.dt
     l  = zero(eltype(pred_mat))
     for j in firstderiv_vars
-        dpred = diff(pred_mat[:, j], dims=1) ./ dt
-        l += mean(abs2, dpred)   # penalise large derivatives in prediction
+        dpred   = diff(pred_mat[:, j],   dims=1) ./ dt
+        dtarget = diff(target_data[:, j], dims=1) ./ dt
+        l += mean(abs2, dpred .- dtarget)
     end
-    return deriv_weight * l
+    return deriv_weight * l / length(firstderiv_vars)
 end
 
 function periodicity_loss(pred_mat, periodic_weight, periodic_vars)
@@ -94,7 +108,7 @@ function periodicity_loss(pred_mat, periodic_weight, periodic_vars)
     for j in periodic_vars
         l += abs2(pred_mat[1, j] - pred_mat[end, j])
     end
-    return periodic_weight * l
+    return periodic_weight * l / length(periodic_vars)
 end
 
 function loss(active::Vector{String}, ctx, config)
