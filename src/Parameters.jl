@@ -9,7 +9,7 @@ working_on = "hpc" # CHANGE "hpc" or "local"
 # i = parse(Int, ARGS[1])
 i = 4
 
-number_of_patients = 50
+number_of_patients = 5
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
@@ -47,7 +47,7 @@ end
 training = (
     vars = [1,2,3,4,5,6],
     n_neurons_per_layer = 10,
-    lr = 1e-3,
+    lr = 1e-4,
     dtmax = 1e-2,
     nn_output_weight = 1.0, # possibly lower
     iterations = 1000,

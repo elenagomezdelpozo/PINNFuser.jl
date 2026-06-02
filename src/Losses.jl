@@ -69,13 +69,13 @@ function mass_conservation_loss(pred_mat, mass_conservation_weight, dt)
     return mass_conservation_weight * l / 6 # 6 pairs
 end
 
-function zero_mean_loss(u_mat, p_NN, nn, st, nn_vars, zm_vars, zm_weight)
-    l = zero(eltype(u_mat))
-    time = size(u_mat, 1)
+function zero_mean_loss(pred_mat, p_NN, nn, st, nn_vars, zm_vars, zm_weight)
+    l = 0.0
+    time = size(pred_mat, 1)
     for (k, i) in enumerate(nn_vars)
         if i in zm_vars
-            nn_over_time = [nn(u_mat[ti, :], p_NN, st)[1][k] for ti in 1:time]
-            l += abs2(mean(nn_over_time))
+            nn_over_time = [nn(pred_mat[ti, :], p_NN, st)[1][k] for ti in 1:time]
+            l += abs2(sum(nn_over_time))
         end
     end
     return zm_weight * l / length(zm_vars)
