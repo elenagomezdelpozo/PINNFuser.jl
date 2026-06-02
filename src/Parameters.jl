@@ -4,10 +4,10 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "hpc" # CHANGE "hpc" or "local"
+working_on = "local" # CHANGE "hpc" or "local"
 
 # i = parse(Int, ARGS[1])
-i = 4
+i = 3
 
 number_of_patients = 5
 
@@ -63,8 +63,8 @@ independent = (
     num_of_samples_per_cycle = 150,
     τ = 1.0,
     Eshift = 0.0,
-        # pLV, pLA, psa, psv, Vlv, Vla, Qav, Qmv, Qs, Qsv 
-    u0 =  [8.0, 8.0, 30.0, 21.5, 130.0, 75.0, 0.0, 0.0, 0.0, 0.0],
+        #  pLV, pLA, psa,  psv,  Vlv,   Vla, Qav, Qmv, Qs, Qsv 
+    u0 =  [9.0, 9.0, 70.0, 21.0, 120.0, 55.0, 0.0, 0.0, 0.0, 0.0],
               # τ, τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la 
     t_params = [1.0, 0.3, 0.45, 0.92, 0.09],  
                 # Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la 
