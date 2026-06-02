@@ -8,12 +8,11 @@ export loss
 
 # Curriculum learning: α goes from 0 to 1 over the first half of training, then stays at 1
 # This way we start by focusing on the mean trajectory and gradually shift towards a step by step comparison
-function data_loss(pred_norm, data_norm, data_vars, data_weight, curriculum_α)
+function data_loss(pred_norm, data_norm, pred_mat, target_data, data_vars, data_weight, curriculum_α)
     mean_l     = zero(eltype(pred_norm))
     detailed_l = zero(eltype(pred_norm))
-
     for j in data_vars
-        mean_l     += abs2(mean(pred_norm[:, j]) - mean(data_norm[:, j]))
+        mean_l     += abs2(mean(pred_mat[:, j]) - mean(target_data[:, j]))
         detailed_l += mean(abs2, pred_norm[:, j] .- data_norm[:, j])
     end
 
@@ -23,8 +22,7 @@ function data_loss(pred_norm, data_norm, data_vars, data_weight, curriculum_α)
     return data_weight * l
 end
 
-function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physics_weight, ode_problem, nn, p_NN, st)
-    dt = training_steps[2] - training_steps[1]
+function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physics_weight, ode_problem, nn, p_NN, st, dt)
     n  = size(pred_mat, 1)
     l  = zero(eltype(pred_mat))
 
@@ -52,8 +50,7 @@ function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physic
     return physics_weight * l / (n - 2)
 end
 
-function mass_conservation_loss(pred_mat, training_steps, mass_conservation_weight)
-    dt = config.dt
+function mass_conservation_loss(pred_mat, mass_conservation_weight, dt)
     Qav, Qmv, Qs, Qsv = pred_mat[:, 7], pred_mat[:, 8], pred_mat[:, 9], pred_mat[:, 10]
 
     ∫Qav  = sum((Qav[1:end-1]  .+ Qav[2:end])  ./ 2) * dt
@@ -92,8 +89,7 @@ function negativity_loss(pred_mat, neg_vars, neg_weight)
     return neg_weight * l
 end
 
-function firstderiv_loss(pred_mat, target_data, firstderiv_vars, training_steps, deriv_weight)
-    dt = config.dt
+function firstderiv_loss(pred_mat, target_data, firstderiv_vars, deriv_weight, dt)
     l  = zero(eltype(pred_mat))
     for j in firstderiv_vars
         dpred   = diff(pred_mat[:, j],   dims=1) ./ dt
@@ -116,15 +112,17 @@ function loss(active::Vector{String}, ctx, config)
     for key in active
         val = if key == "data"   
                 data_loss(ctx.pred_norm, ctx.data_norm, 
+                            ctx.pred_mat, ctx.target_data,
                             config.data_vars, config.data_weight, 
                             ctx.curriculum_α)   
-                elseif key == "physics"
+                elseif key == "physics" 
                     physics_loss(ctx.pred_mat, ctx.training_steps,
                                 ctx.ode_params, config.physics_vars,
-                                config.physics_weight, ctx.ode_problem)
+                                config.physics_weight, ctx.ode_problem,
+                                ctx.nn, ctx.p_NN, ctx.st, config.dt)
                 elseif key == "mass"
-                    mass_conservation_loss(ctx.pred_mat, ctx.training_steps,
-                                        config.mass_conservation_weight)
+                    mass_conservation_loss(ctx.pred_mat,
+                                        config.mass_conservation_weight, config.dt)
                 elseif key == "zero_mean"
                     zero_mean_loss(ctx.pred_mat, ctx.p_NN, ctx.nn, ctx.st,
                                 ctx.nn_vars, config.zm_vars, config.zm_weight)
@@ -132,8 +130,8 @@ function loss(active::Vector{String}, ctx, config)
                     negativity_loss(ctx.pred_mat, config.neg_vars, config.neg_weight)
                 elseif key == "firstderiv"
                     firstderiv_loss(ctx.pred_mat, ctx.target_data,
-                                    config.firstderiv_vars,
-                                    ctx.training_steps, config.deriv_weight)
+                                    config.firstderiv_vars, config.deriv_weight, 
+                                    config.dt)
                 elseif key == "periodicity"
                     periodicity_loss(ctx.pred_mat, config.periodic_weight,
                                     config.periodic_vars)

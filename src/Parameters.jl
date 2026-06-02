@@ -4,10 +4,10 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "local" # CHANGE "hpc" or "local"
+working_on = "hpc" # CHANGE "hpc" or "local"
 
 # i = parse(Int, ARGS[1])
-i = 1
+i = 4
 
 number_of_patients = 50
 
@@ -28,7 +28,7 @@ changeable = (
     working_on = working_on,
     name = names[i],
     active = active,
-    early_stopping_start = 10,
+    early_stopping_start = 100,
     range_to_plot = 5.0,
     number_of_patients = number_of_patients
 )
@@ -90,7 +90,7 @@ config = (
     physics_vars = [1, 2, 3],
     physics_weight = 1e-5,
     mass_conservation_weight = 1.0,
-    zm_vars = nn_vars,
+    zm_vars = training.vars,
     zm_weight = 1e-5,
     neg_vars = [5, 6],
     neg_weight = 10.0,
@@ -98,7 +98,7 @@ config = (
     deriv_weight = 1e-5,
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1e-5,
-    curriculum_switch_iters = 20,
+    curriculum_switch_iters = 50,
     min_loss = 1e-6,
     dt = dt
 )

@@ -37,10 +37,7 @@ if parameters.working_on == "hpc"
     end
 
     include("Losses.jl")
-    using .LossesMod
-
-    include("Parameters.jl")
-    using .ParametersMod: parameters
+    using .LossesMod: loss
 
     export PINN_Infuser_f
 
@@ -75,7 +72,6 @@ function PINN_Infuser_f(
 
         U_MEAN_cpu = vec(mean(target_data, dims=1))
         U_STD_cpu  = vec(std(target_data,  dims=1)) .+ 1f-6
-
         # Cast to Float32 and push to device
         target_f32  = Float32.(target_data)
         U_MEAN      = _to_device(Float32.(U_MEAN_cpu))
@@ -97,7 +93,7 @@ function PINN_Infuser_f(
         log_buffer = String[]          # batch prints; flushed every callback
 
         function predict_all(p_NN)
-            map(1:length(ode_problems)) do idx
+            map(1:length(ode_problems)) do idx # length(ode_problems) is the number of patients
                 prob_i   = ode_problems[idx]
                 params_i = ode_params_list[idx]
                 u0_vec   = Float32.(Vector(prob_i.u0))
@@ -130,14 +126,13 @@ function PINN_Infuser_f(
             map(1:length(ode_problems)) do i
                 sol_arr = Float32.(Array(sols[i])')   # (T × n_states)
                 pred_norm        = (sol_arr .- U_MEAN_cpu') ./ U_STD_cpu'
-                patient_target   = target_f32[[i], :]
-                patient_data_norm = (patient_target .- U_MEAN_cpu') ./ U_STD_cpu'
+                patient_data_norm = (target_f32 .- U_MEAN_cpu') ./ U_STD_cpu'
                 (
                     sol            = sols[i],
                     pred_mat       = sol_arr,
                     pred_norm      = pred_norm,
                     data_norm      = patient_data_norm,
-                    target_data    = patient_target,
+                    target_data    = target_f32,
                     training_steps = parameters.training_time,
                     ode_params     = ode_params_list[i],
                     ode_problem    = ode_problems[i],
@@ -172,8 +167,7 @@ function PINN_Infuser_f(
                 Zygote.ignore() do
                     last_ctxs[]  = ctxs
                     call_count[] += 1
-                    push!(log_buffer,
-                        "  [fwd] call=$(call_count[]) loss=computing…")
+                    push!(log_buffer)
                 end
 
                 # Differentiable loss (serial over ctxs — Zygote needs serial here)
@@ -183,9 +177,7 @@ function PINN_Infuser_f(
                 ) / length(ctxs)
 
                 Zygote.ignore() do
-                    push!(log_buffer,
-                        "  [fwd] call=$(call_count[]) " *
-                        "loss=$(round(Float64(total_loss), sigdigits=5))")
+                    push!(log_buffer, "call $(call_count[]) ")
                 end
 
                 return total_loss
@@ -226,7 +218,7 @@ function PINN_Infuser_f(
 
             iter = length(losses)
             curriculum_α[] = min(1.0f0, Float32(iter) / parameters.curriculum_switch_iters)
-            println("\nIter $iter | avg_loss: $(round(Float64(total_loss), sigdigits=5)) | α=$(round(curriculum_α[], digits=3))")
+            println("\nIter $iter | avg_loss: $(round(Float64(avg_loss), sigdigits=5)) | α=$(round(curriculum_α[], digits=3))")
     
             # ── Early stopping ───────────────────────────────────────────────────
             if early_stopping && iter > parameters.early_stopping_start
@@ -244,7 +236,8 @@ function PINN_Infuser_f(
         end
 
         # ── 11. Solve ─────────────────────────────────────────────────────────────
-        @info "Starting optimisation | gpu=$(CUDA_AVAILABLE[]) | threads=$(nthreads())"
+        @info "Starting optimisation"
+        @info "Active losses = $(parameters.active)"
         trained_params = Optimization.solve(
             optprob,
             optimizer(parameters.lr),

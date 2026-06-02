@@ -12,7 +12,6 @@ name = parameters.name
 
 nn_vars = parameters.vars
 NN = parameters.NN
-
 trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
     patients_odes,
     patients_params,
