@@ -1,0 +1,11 @@
+Array task: 6
+Node: ag0002
+GPUs: 0
+
+call 1 
+Iter 1 | avg_loss: 2.6803 | α=0.011
+
+call 2 
+Iter 2 | avg_loss: 2.6666 | α=0.022
+
+call 3 

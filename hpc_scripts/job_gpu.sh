@@ -4,12 +4,12 @@
 #SBATCH -A plgsanomodeling2-gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=1
 #SBATCH --mem=7G
 #SBATCH --gres=gpu:1
-#SBATCH --time=10:00:00
-#SBATCH --output=hpc_scripts/hpc_logs/training_gpu_%a.out
-#SBATCH --error=hpc_scripts/hpc_logs/training_gpu_%a.err
+#SBATCH --time=20:00:00
+#SBATCH --output=hpc_scripts/hpc_logs_50/training_gpu_%a.out
+#SBATCH --error=hpc_scripts/hpc_logs_50/training_gpu_%a.err
 #SBATCH --array=1-7
 
 # Load necessary modules
@@ -24,7 +24,6 @@ export JULIA_CUDA_MEMORY_POOL=cuda
 echo "Array task: $SLURM_ARRAY_TASK_ID"
 echo "Node: $SLURMD_NODENAME"
 echo "GPUs: $CUDA_VISIBLE_DEVICES"
-nvidia-smi
 
 # Precompile the project once, then run
 julia --threads=auto --project=. -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()'  >/dev/null 2>&1

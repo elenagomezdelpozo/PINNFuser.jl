@@ -177,7 +177,7 @@ function PINN_Infuser_f(
                 ) / length(ctxs)
 
                 Zygote.ignore() do
-                    push!(log_buffer, "call $(call_count[]) ")
+                    println("\ncall $(call_count[]) ")
                 end
 
                 return total_loss
@@ -218,7 +218,7 @@ function PINN_Infuser_f(
 
             iter = length(losses)
             curriculum_α[] = min(1.0f0, Float32(iter) / parameters.curriculum_switch_iters)
-            println("\nIter $iter | avg_loss: $(round(Float64(avg_loss), sigdigits=5)) | α=$(round(curriculum_α[], digits=3))")
+            println("Iter $iter | avg_loss: $(round(Float64(avg_loss), sigdigits=5)) | α=$(round(curriculum_α[], digits=3))")
     
             # ── Early stopping ───────────────────────────────────────────────────
             if early_stopping && iter > parameters.early_stopping_start

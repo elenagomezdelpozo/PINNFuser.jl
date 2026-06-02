@@ -1,8 +1,2 @@
 WARNING: Method definition rrule(typeof(Base.merge), T1, T2) where {T1<:(NamedTuple{names, T} where T<:Tuple where names), T2<:(NamedTuple{names, T} where T<:Tuple where names)} in module Lux at /net/people/plgrid/plgelenagdelpozo/.julia/packages/Lux/68T9j/src/chainrules.jl:17 overwritten in module ChainRules at /net/people/plgrid/plgelenagdelpozo/.julia/packages/ChainRules/esTf8/src/rulesets/Base/base.jl:313.
 ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
-WARNING: replacing module ParametersMod.
-WARNING: ignoring conflicting import of ParametersMod.parameters into PINNInfuserMod
-[ Info: CUDA functional
-[ Info: Starting optimisation | gpu=true | threads=8
-[ Info: Early stopping at iter 11, loss=0.3306802
-[ Info: Model saved successfully to pinn_data.jld2
