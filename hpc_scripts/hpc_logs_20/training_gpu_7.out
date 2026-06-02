@@ -30,3 +30,6 @@ call 9
 Iter 9 | avg_loss: 1.4366 | α=0.1
 
 call 10 
+Iter 10 | avg_loss: 1.4216 | α=0.111
+
+call 11 
