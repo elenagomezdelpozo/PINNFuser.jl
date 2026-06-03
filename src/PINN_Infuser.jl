@@ -223,9 +223,11 @@ function PINN_Infuser_f(
             # ── Early stopping ───────────────────────────────────────────────────
             if early_stopping && iter > parameters.early_stopping_start
                 recent = losses[max(1, end-5) : end-1]
-                if losses[end] > maximum(recent) ||
-                losses[end] > minimum(recent) + parameters.min_loss
-                    @info "Early stopping at iter $iter, loss=$(losses[end])"
+                if losses[end] > maximum(recent) 
+                    @info "Early stopping because of increasing loss at iter $iter, loss=$(losses[end])"
+                    return true
+                elseif losses[end] > minimum(recent) + parameters.min_loss
+                    @info "Early stopping because of reaching minimum at iter $iter, loss=$(losses[end])"
                     return true
                 end
             end
