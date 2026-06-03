@@ -3,3 +3,5 @@ Manifest.toml
 .history/*
 hpc/scripts/hpc_logs/*
 full_error.txt
+data_figures/*
+figures/*
