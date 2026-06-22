@@ -11,7 +11,7 @@ i = parse(Int, ARGS[1])
 
 number_of_patients = 30 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
 
-actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
+actives = ["data", "physics", "mass", "zero_mean", "negativity", "periodicity"]
 names = [
     "data",             #1
     "data&physics",     #2
