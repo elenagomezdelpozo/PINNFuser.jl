@@ -89,7 +89,6 @@ function PINN_Infuser_f(
         nn_out_weight = Float32(parameters.nn_output_weight)
 
         call_count = Ref(0)
-        curriculum_α = Ref(0.0f0)
         log_buffer = String[]          # batch prints; flushed every callback
 
         function predict_all(p_NN)
@@ -140,7 +139,6 @@ function PINN_Infuser_f(
                     p_NN           = p,
                     nn             = nn,
                     st             = st,
-                    curriculum_α   = curriculum_α[],    
                 )
             end
         end
@@ -217,8 +215,7 @@ function PINN_Infuser_f(
             push!(losses, Float32(avg_loss))
 
             iter = length(losses)
-            curriculum_α[] = min(1.0f0, Float32(iter) / parameters.curriculum_switch_iters)
-            println("Iter $iter | avg_loss: $(round(Float64(avg_loss), sigdigits=5)) | α=$(round(curriculum_α[], digits=3))")
+            println("Iter $iter | avg_loss: $(round(Float64(avg_loss), sigdigits=5))")
     
             # ── Early stopping ───────────────────────────────────────────────────
             if early_stopping && iter > parameters.early_stopping_start

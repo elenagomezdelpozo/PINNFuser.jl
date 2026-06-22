@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=pinn_infuser_20
+#SBATCH --job-name=pinn_infuser_30
 #SBATCH --partition=plgrid-gpu-v100
 #SBATCH -A plgsanomodeling2-gpu
 #SBATCH --nodes=1
@@ -7,10 +7,10 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
 #SBATCH --gres=gpu:1
-#SBATCH --time=15:00:00
-#SBATCH --output=hpc_scripts/hpc_logs_20/training_gpu_%a.out
-#SBATCH --error=hpc_scripts/hpc_logs_20/training_gpu_%a.err
-#SBATCH --array=1-7
+#SBATCH --time=24:00:00
+#SBATCH --output=hpc_scripts/hpc_logs/training_gpu_%a.out
+#SBATCH --error=hpc_scripts/hpc_logs/training_gpu_%a.err
+#SBATCH --array=1-6
 
 # Load necessary modules
 module load julia >/dev/null 2>&1

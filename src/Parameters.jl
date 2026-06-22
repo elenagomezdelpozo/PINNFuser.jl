@@ -9,7 +9,7 @@ working_on = "hpc" # CHANGE "hpc" or "local"
 i = parse(Int, ARGS[1])
 # i = 4
 
-number_of_patients = 50 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
+number_of_patients = 30 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "firstderiv", "periodicity"]
 names = [
@@ -18,8 +18,7 @@ names = [
     "data&mass",        #3
     "data&zero_mean",   #4
     "data&negativity",  #5
-    "data&firstderiv",  #6
-    "data&periodicity"  #7
+    "data&periodicity"  #6
 ]
 
 active = i == 1 ? [actives[1]] : [actives[1], actives[i]]
@@ -98,7 +97,6 @@ config = (
     deriv_weight = 1e-5,
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1e-5,
-    curriculum_switch_iters = 90, #changed from 50 to 90, didnt run 90 yet
     min_loss = 1e-4,
     dt = dt
 )

@@ -6,20 +6,14 @@ using SciMLBase, Statistics, Zygote
 
 export loss
 
-# Curriculum learning: α goes from 0 to 1 over the first half of training, then stays at 1
-# This way we start by focusing on the mean trajectory and gradually shift towards a step by step comparison
-function data_loss(pred_norm, data_norm, pred_mat, target_data, data_vars, data_weight, curriculum_α)
-    mean_l     = zero(eltype(pred_norm))
-    detailed_l = zero(eltype(pred_norm))
+# Now data loss only sees the maximum and minimum values of the predicted and target data, not the full matrices.
+function data_loss(pred_norm, data_norm, data_vars, data_weight)
+    l = zero(eltype(pred_norm))
     for j in data_vars
-        mean_l     += abs2(mean(pred_mat[:, j]) - mean(target_data[:, j]))
-        detailed_l += mean(abs2, pred_norm[:, j] .- data_norm[:, j])
+        l += abs2(maximum(pred_norm[:, j]) - maximum(data_norm[:, j]))
+        l += abs2(minimum(pred_norm[:, j]) - minimum(data_norm[:, j]))
     end
-
-    l = (1 - curriculum_α) * mean_l / length(data_vars) +
-            curriculum_α  * detailed_l / length(data_vars)
-
-    return data_weight * l
+    return data_weight * l / length(data_vars)
 end
 
 function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physics_weight, ode_problem, nn, p_NN, st, dt)
@@ -89,16 +83,6 @@ function negativity_loss(pred_mat, neg_vars, neg_weight)
     return neg_weight * l
 end
 
-function firstderiv_loss(pred_mat, target_data, firstderiv_vars, deriv_weight, dt)
-    l  = zero(eltype(pred_mat))
-    for j in firstderiv_vars
-        dpred   = diff(pred_mat[:, j],   dims=1) ./ dt
-        dtarget = diff(target_data[:, j], dims=1) ./ dt
-        l += mean(abs2, dpred .- dtarget)
-    end
-    return deriv_weight * l / length(firstderiv_vars)
-end
-
 function periodicity_loss(pred_mat, periodic_weight, periodic_vars)
     l  = zero(eltype(pred_mat))
     for j in periodic_vars
@@ -112,9 +96,7 @@ function loss(active::Vector{String}, ctx, config)
     for key in active
         val = if key == "data"   
                 data_loss(ctx.pred_norm, ctx.data_norm, 
-                            ctx.pred_mat, ctx.target_data,
-                            config.data_vars, config.data_weight, 
-                            ctx.curriculum_α)   
+                            config.data_vars, config.data_weight)
                 elseif key == "physics" 
                     physics_loss(ctx.pred_mat, ctx.training_steps,
                                 ctx.ode_params, config.physics_vars,
