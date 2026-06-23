@@ -229,6 +229,16 @@ function PINN_Infuser_f(
                 end
             end
 
+            # ── Save model every 100 iterations ─────────────────────────────────────────────
+            if iter % 100 == 0
+                @info "Saving model at iteration $iter"
+                jldsave(parameters.savepath;
+                        trained_p = trained_params.u,
+                        trained_st = st,
+                        losses = losses
+                        )
+            end
+            
             # Invalidate cache so next forward pass stores a fresh copy
             last_ctxs[] = nothing
             return false

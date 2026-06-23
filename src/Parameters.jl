@@ -46,7 +46,7 @@ end
 training = (
     vars = [1,2,3,4,5,6],
     n_neurons_per_layer = 10,
-    lr = 1e-4,
+    lr = 1e-3,
     dtmax = 1e-2,
     nn_output_weight = 1.0, # possibly lower
     iterations = 1000,
@@ -97,7 +97,7 @@ config = (
     deriv_weight = 1e-5,
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1e-5,
-    min_loss = 1e-4,
+    min_loss = 1e-5,
     dt = dt
 )
 
