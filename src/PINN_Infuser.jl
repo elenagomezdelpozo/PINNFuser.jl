@@ -232,8 +232,9 @@ function PINN_Infuser_f(
             # ── Save model every 100 iterations ─────────────────────────────────────────────
             if iter % 100 == 0
                 @info "Saving model at iteration $iter"
+                current_params = hasproperty(state, :u) ? state.u : state   # ← already doing this elsewhere
                 jldsave(parameters.savepath;
-                        trained_p = trained_params.u,
+                        trained_p = current_params,
                         trained_st = st,
                         losses = losses
                         )

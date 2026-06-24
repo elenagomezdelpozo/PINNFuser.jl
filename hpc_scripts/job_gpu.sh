@@ -7,9 +7,9 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
 #SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00
-#SBATCH --output=hpc_scripts/hpc_logs/training_gpu_%a.out
-#SBATCH --error=hpc_scripts/hpc_logs/training_gpu_%a.err
+#SBATCH --time=30:00:00
+#SBATCH --output=hpc_scripts/hpc_logs_25/training_gpu_%a.out
+#SBATCH --error=hpc_scripts/hpc_logs_25/training_gpu_%a.err
 #SBATCH --array=1-6
 
 # Load necessary modules
