@@ -27,6 +27,6 @@ using .PlotsMod: Plot_ODE, Plot_all_patients, Plot_target
 
 using .TestMod: Tester_f
 
-using .PatientsMod: generate_patients
+using .PatientsMod: generate_patients, save_params_manifest, simulate_patient, save_patient_data
 
 end

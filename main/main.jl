@@ -1,5 +1,7 @@
 using OptimizationOptimisers: ADAM
 using JLD2
+using StaticArrays, OrdinaryDiffEq
+
 
 include("../src/Lib.jl")
 using .LibInfuser
@@ -7,16 +9,16 @@ using .LibInfuser
 include("../src/Parameters.jl")
 using .ParametersMod: parameters
 
-patients_params, patients_odes = LibInfuser.generate_patients(parameters.number_of_patients, seed = 42)
 name = parameters.name
 
+ode_problem = ODEProblem(LibInfuser.NIK_2ch, SA[parameters.u0...], parameters.tspan, parameters.ode_params)
+
 nn_vars = parameters.vars
-NN = parameters.NN
 trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
-    patients_odes,
-    patients_params,
-    NN,
-    parameters.original_data;
+    ode_problem,
+    parameters.ode_params,
+    parameters.NN,
+    parameters.original_data_list;
     nn_vars = nn_vars,
     optimizer = ADAM,
     reltol = Float32(1e-6),

@@ -4,12 +4,12 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "hpc" # CHANGE "hpc" or "local"
+working_on = "local" # CHANGE "hpc" or "local"
 
-i = parse(Int, ARGS[1])
-# i = 4
+# i = parse(Int, ARGS[1])
+i = 1
 
-number_of_patients = 30 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
+number_of_patients = 10 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "periodicity"]
 names = [
@@ -25,22 +25,27 @@ active = i == 1 ? [actives[1]] : [actives[1], actives[i]]
 
 changeable = ( 
     working_on = working_on,
-    name = names[i],
-    active = active,
-    early_stopping_start = 100,
-    range_to_plot = 5.0,
-    number_of_patients = number_of_patients
+    name = names[i]
 )
 
 if working_on == "hpc"
-    loaded_data = readdlm("/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/data/target_data.txt")
+    data_dir = "/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/data/Model/data"
     plotting = false
     savepath = "/net/afscra/people/plgelenagdelpozo/PINNFuser.jl/trainings/pinn_$(number_of_patients)_$(changeable.name)_$(working_on).jld2"
 
 elseif working_on == "local"
-    loaded_data = readdlm("data/target_data.txt")
+    data_dir = "data/Model/data"
     plotting = true
     savepath = "trainings/pinn_$(number_of_patients)_$(changeable.name)_hpc.jld2"
+end
+
+# Load all patients into a list
+all_patient_files = sort(filter(f -> startswith(f, "patient_") && endswith(f, ".csv"),
+                                readdir(data_dir)))
+all_patient_files = all_patient_files[1:number_of_patients]   # take only as many as requested
+
+loaded_data_list = map(all_patient_files) do fname
+    readdlm(joinpath(data_dir, fname), ',', Float64, '\n'; skipstart=1)
 end
 
 training = (
@@ -53,7 +58,11 @@ training = (
     initialisation = 1e-3,
     plot_every = 1,
     num_of_cycles = 1,
-    seed = 42
+    seed = 42,
+    active = active,
+    early_stopping_start = 100,
+    range_to_plot = 5.0,
+    number_of_patients = number_of_patients
 )
 
 # Do not change these below
@@ -76,11 +85,19 @@ Rmv, Zao, Rs, Rsv, Csa, Csv, Emax_lv, Emin_lv, Emax_la, Emin_la = independent.od
 num_of_samples_tsteps = Int(independent.num_of_samples_per_cycle * (independent.tspan[2] - independent.tspan[1])) 
 tsteps = range(independent.tspan[1], independent.tspan[2], length = num_of_samples_tsteps)
 dt = tsteps[2] - tsteps[1]
-extrap_original_data = Array{Float64}(loaded_data)[
-    1:Int(floor(independent.extrapolation_tspan[2] * independent.num_of_samples_per_cycle)), :
-]
-original_data = extrap_original_data[1001:1000 + training.num_of_cycles * independent.num_of_samples_per_cycle, :]
-plot_time = range(independent.tspan[2]-changeable.range_to_plot, independent.tspan[2], length = Int(independent.num_of_samples_per_cycle * (changeable.range_to_plot)))
+
+function process_patient_data(loaded_data)
+    extrap = Array{Float64}(loaded_data)[
+        1:Int(floor(independent.extrapolation_tspan[2] * independent.num_of_samples_per_cycle)), :
+    ]
+    original = extrap[1001:1000 + training.num_of_cycles * independent.num_of_samples_per_cycle, :]
+    return (extrap_original_data = extrap, original_data = original)
+end
+
+processed_list     = map(process_patient_data, loaded_data_list)
+original_data_list = [p.original_data for p in processed_list]   # this goes into PINN_Infuser_f
+
+plot_time = range(independent.tspan[2]-training.range_to_plot, independent.tspan[2], length = Int(independent.num_of_samples_per_cycle * (training.range_to_plot)))
 training_time = range(independent.tspan[2]- independent.τ*training.num_of_cycles, independent.tspan[2], length = Int(training.num_of_cycles * independent.num_of_samples_per_cycle))
 
 config = (
@@ -102,7 +119,7 @@ config = (
 )
 
 NN = Lux.Chain(
-    Lux.Dense(length(independent.u0), training.n_neurons_per_layer, tanh),
+    Lux.Dense(2 * length(independent.u0), training.n_neurons_per_layer, tanh),
     Lux.Dense(training.n_neurons_per_layer, training.n_neurons_per_layer, tanh),
     Lux.Dense(training.n_neurons_per_layer, training.n_neurons_per_layer, tanh),
     Lux.Dense(training.n_neurons_per_layer, training.n_neurons_per_layer, tanh),
@@ -161,11 +178,8 @@ dependent = (
     Emin_lv = Emin_lv,
     Emax_la = Emax_la,
     Emin_la = Emin_la,
-
-    loaded_data = loaded_data,
-    extrap_original_data = extrap_original_data,
-    original_data = original_data,
-
+    loaded_data_list       = loaded_data_list,       # raw, if needed elsewhere
+    original_data_list     = original_data_list,     # → goes into PINN_Infuser_f
     config = config
 )
 
