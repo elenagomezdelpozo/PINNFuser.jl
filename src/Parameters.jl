@@ -4,10 +4,10 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "hpc" # CHANGE "hpc" or "local"
+working_on = "local" # CHANGE "hpc" or "local"
 
-i = parse(Int, ARGS[1])
-#i = 1
+# i = parse(Int, ARGS[1])
+i = 3
 
 number_of_patients = 25 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
 
@@ -21,7 +21,12 @@ names = [
     "data&periodicity"  #6
 ]
 
-active = i == 1 ? [actives[1]] : [actives[1], actives[i]]
+active = try
+    i == 1 ? [actives[1]] : [actives[1], actives[i]]
+catch e
+    println("Error because of i definition: $e")
+    nothing  # or some fallback value
+end
 
 changeable = ( 
     working_on = working_on,
@@ -42,9 +47,13 @@ end
 # Load all patients into a list
 all_patient_files = sort(filter(f -> startswith(f, "patient_") && endswith(f, ".csv"),
                                 readdir(data_dir)))
-all_patient_files = all_patient_files[1:number_of_patients]   # take only as many as requested
+all_patient_files = all_patient_files[1:100]   # take all
+training_patient_files = all_patient_files[1:number_of_patients]  # take first N patients
 
-loaded_data_list = map(all_patient_files) do fname
+loaded_all_data_list = map(all_patient_files) do fname
+    readdlm(joinpath(data_dir, fname), ',', Float64, '\n'; skipstart=1)
+end
+loaded_training_data_list = map(training_patient_files) do fname
     readdlm(joinpath(data_dir, fname), ',', Float64, '\n'; skipstart=1)
 end
 
@@ -86,16 +95,19 @@ num_of_samples_tsteps = Int(independent.num_of_samples_per_cycle * (independent.
 tsteps = range(independent.tspan[1], independent.tspan[2], length = num_of_samples_tsteps)
 dt = tsteps[2] - tsteps[1]
 
-function process_patient_data(loaded_data)
+function process_patient_data(loaded_data, num_cycles)
     extrap = Array{Float64}(loaded_data)[
         1:Int(floor(independent.extrapolation_tspan[2] * independent.num_of_samples_per_cycle)), :
     ]
-    original = extrap[1001:1000 + training.num_of_cycles * independent.num_of_samples_per_cycle, :]
+    original = extrap[1051:1050 + num_cycles * independent.num_of_samples_per_cycle, :]
     return (extrap_original_data = extrap, original_data = original)
 end
 
-processed_list     = map(process_patient_data, loaded_data_list)
-original_data_list = [p.original_data for p in processed_list]   # this goes into PINN_Infuser_f
+processed_training_list = map(process_patient_data, loaded_training_data_list, [training.num_of_cycles for _ in 1:length(loaded_training_data_list)])
+original_training_data_list = [p.original_data for p in processed_training_list]   # this goes into PINN_Infuser_f
+
+processed_all_data_list = map(process_patient_data, loaded_all_data_list, [Int(training.range_to_plot) for _ in 1:length(loaded_all_data_list)])
+original_all_data_list = [p.original_data for p in processed_all_data_list]   # this goes into PINN_Infuser_f
 
 plot_time = range(independent.tspan[2]-training.range_to_plot, independent.tspan[2], length = Int(independent.num_of_samples_per_cycle * (training.range_to_plot)))
 training_time = range(independent.tspan[2]- independent.τ*training.num_of_cycles, independent.tspan[2], length = Int(training.num_of_cycles * independent.num_of_samples_per_cycle))
@@ -162,6 +174,7 @@ plot_params = (
 )
 dependent = (
     NN = NN,
+    data_dir = data_dir,
     plotting = plotting,
     savepath = savepath,
     num_of_samples_tsteps = num_of_samples_tsteps,
@@ -178,8 +191,10 @@ dependent = (
     Emin_lv = Emin_lv,
     Emax_la = Emax_la,
     Emin_la = Emin_la,
-    loaded_data_list       = loaded_data_list,       # raw, if needed elsewhere
-    original_data_list     = original_data_list,     # → goes into PINN_Infuser_f
+    loaded_training_data_list       = loaded_training_data_list,       # raw, if needed elsewhere
+    original_training_data_list     = original_training_data_list,     # → goes into PINN_Infuser_f
+    loaded_all_data_list            = loaded_all_data_list,            # raw, if needed elsewhere
+    original_all_data_list          = original_all_data_list,          # → used in Tester
     config = config
 )
 

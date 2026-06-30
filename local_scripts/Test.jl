@@ -1,14 +1,13 @@
+using DelimitedFiles
+
 include("../src/Lib.jl")
 using .LibInfuser
-
+ 
 include("../src/Parameters.jl")
 using .ParametersMod: parameters
-
+ 
 name = parameters.name # name of the training to test
-@info "Testing model: $(name)"  
-"""
-training_ode_parameters, odes = LibInfuser.generate_patients(parameters.number_of_patients; seed = parameters.seed)  # all patients used in training
-LibInfuser.Tester_f(name, training_ode_parameters; test = false) 
-"""
-new_ode_parameters, odes = LibInfuser.generate_patients(1; seed = 50)  # generate a single patient and extract its parameters
-LibInfuser.Tester_f(name, new_ode_parameters; test = true) 
+@info "Testing model: $(name)"
+
+new_patient = parameters.original_all_data_list[100]   # aligned with parameters.plot_time (5 cycles)processed_all_data_list = map(process_patient_data, loaded_all_data_list, [Int(training.range_to_plot) for _ in 1:length(loaded_all_data_list)])processed_all_data_list = map(process_patient_data, loaded_all_data_list, [Int(training.range_to_plot) for _ in 1:length(loaded_all_data_list)])
+LibInfuser.Tester_f(name, new_patient; test = true)

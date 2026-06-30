@@ -18,7 +18,7 @@ trained_p, trained_st, losses = LibInfuser.PINN_Infuser_f(
     ode_problem,
     parameters.ode_params,
     parameters.NN,
-    parameters.original_data_list;
+    parameters.original_training_data_list;
     nn_vars = nn_vars,
     optimizer = ADAM,
     reltol = Float32(1e-6),

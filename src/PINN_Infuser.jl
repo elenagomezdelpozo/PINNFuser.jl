@@ -9,7 +9,7 @@ using Statistics
 using Zygote
 using OrdinaryDiffEq: Vern7
 using Lux
-using DataInterpolations: LinearInterpolation
+using DataInterpolations: LinearInterpolation, ExtrapolationType
 using Base.Threads
 using JLD2
 
@@ -92,7 +92,7 @@ function PINN_Infuser_f(
 
         itp_list = map(target_f32_list) do data_p   # data_p: (T × n_states)
             map(1:n_states) do s
-                LinearInterpolation(data_p[:, s], t_obs; extrapolate=true)
+                LinearInterpolation(new_patient_data[:, s], t_obs; extrapolation = ExtrapolationType.Extension)
             end
         end
 

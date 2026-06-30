@@ -7,95 +7,97 @@ using .ModelMod: NIK_2ch
 include("Parameters.jl")
 using .ParametersMod: parameters
 
-include("Generate_patients.jl")
-using .PatientsMod: generate_patients
-
 export Tester_f
 
 using DelimitedFiles
-using JLD2          # ← add this — provides load()
+using JLD2          
 using Lux
 using StableRNGs
 using OrdinaryDiffEq
 using Plots
 using ComponentArrays
 using Random
+using DataInterpolations: LinearInterpolation, ExtrapolationType
+"""
+    Tester_f(name, new_patient_data; test = true)
 
+Tests a trained single-ODE PINN corrector against a NEW target patient
+(one not seen during training).
 
-function Tester_f(name, ode_parameters; test = false)
+`new_patient_data` must be a (T × n_states) matrix of the target patient's
+observed trajectory, sampled at `parameters.training_time` (same convention
+used for training data, e.g. via `process_patient_data`).
+
+The PINN derivative is:
+    du = f(u_sim, ode_params, t) + nn_output_weight * NN([u_obs(t); u_sim(t)])
+where u_obs(t) is built by interpolating `new_patient_data` over
+`parameters.training_time`, exactly mirroring training.
+"""
+function Tester_f(name, new_patient_data::AbstractMatrix{Float64}; test = true)
     name = "pinn_$(parameters.number_of_patients)_$(name)_hpc"
     data = load(parameters.savepath)
     trained_st = data["trained_st"]
-    trained_p = data["trained_p"]
     @info "Model loaded from $(parameters.savepath)"
-    
-    nn_vars = parameters.vars  
+
+    nn_vars = parameters.vars
+    n_states = length(parameters.u0)
 
     # Reconstruct clean NamedTuple parameter structure (avoids ReshapedArray bug)
     rng = StableRNG(parameters.seed)
     trained_p, _ = Lux.setup(rng, parameters.NN)
     trained_p = ComponentVector{Float64}(trained_p)
     trained_p .= Float64.(data["trained_p"])  # copy values into fresh contiguous memory
-    
-    # ── Baseline ODE (no NN) ──────────────────────────────────────────────────
-    all_original_odes = []
-    for (i, ode_param) in enumerate(ode_parameters)
-        ode_prob_base = ODEProblem(ModelMod.NIK_2ch!, parameters.u0, parameters.tspan, ode_param)
-        ode_sol       = solve(ode_prob_base, Vern7();
-            saveat = parameters.plot_time, reltol = 1e-6, abstol = 1e-6)
-        ode_pred = Matrix(Array(ode_sol)')
-        push!(all_original_odes, ode_pred)
-    end
-    
-    # ── Solve PINNS ─────────────────────────────────────────────────────────────────
-    all_pinns = []
-    for (i, ode_param) in enumerate(ode_parameters)
-        function pinn_ode!(du, u, trained_p, t)
-            nn_output = parameters.NN(u, trained_p, trained_st)[1]   # plain Vector, no reshape — matches training
-            ModelMod.NIK_2ch!(du, u, ode_param, t)
-            for (k, i) in enumerate(nn_vars)
-                du[i] += parameters.nn_output_weight * nn_output[k]
-            end
+
+     # ── Build u_obs(t) interpolants for the new target patient ─────────────────
+    t_obs = parameters.plot_time
+    @assert size(new_patient_data, 1) == length(t_obs) "new_patient_data must have $(length(t_obs)) rows matching time length"
+    @assert size(new_patient_data, 2) == n_states "new_patient_data must have $(n_states) columns matching state dimension"
+ 
+    itps = [LinearInterpolation(new_patient_data[:, s], t_obs; extrapolation = ExtrapolationType.Extension) for s in 1:n_states]
+ 
+    # ── Baseline ODE (no NN correction) ─────────────────────────────────────────
+    ode_prob_base = ODEProblem(ModelMod.NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
+    ode_sol_base  = solve(ode_prob_base, Vern7();
+        saveat = parameters.plot_time, reltol = 1e-6, abstol = 1e-6)
+    original_ode_pred = Matrix(Array(ode_sol_base)')   # (time × vars)
+
+    # ── Solve PINN-corrected ODE against the new patient ────────────────────────
+    function pinn_ode!(du, u, p, t)
+        u_obs = Float64[itps[s](t) for s in 1:n_states]
+        nn_input = vcat(u_obs, Float64.(u))             # (2*n_states,) — matches training
+        nn_output = parameters.NN(nn_input, p, trained_st)[1]
+        ModelMod.NIK_2ch!(du, u, parameters.ode_params, t)
+        for (k, i) in enumerate(nn_vars)
+            du[i] += parameters.nn_output_weight * nn_output[k]
         end
-        pinn_problem = ODEProblem(
-            (du, u, p, t) -> pinn_ode!(du, u, p, t),
-            parameters.u0,
-            parameters.tspan,
-            trained_p,
-        )
-        solved_pinn = solve(pinn_problem, Vern7();
-        saveat = parameters.plot_time, dtmax = parameters.dtmax, reltol = 1e-6, abstol = 1e-6)
-        pinn_pred = Matrix(Array(solved_pinn)')   # (time × vars)
-        push!(all_pinns, pinn_pred)
     end
-    
-    # ── Data ──────────────────────────────────────────────────────────────────
-    original_data = parameters.extrap_original_data[1501:1500 + length(parameters.plot_time), :]
+
+    pinn_problem = ODEProblem(pinn_ode!, parameters.u0, parameters.tspan, trained_p)
+    solved_pinn = solve(pinn_problem, Vern7();
+        saveat = parameters.plot_time, dtmax = parameters.dtmax, reltol = 1e-6, abstol = 1e-6)
+    pinn_pred = Matrix(Array(solved_pinn)')   # (time × vars)
+
+    # ── Target patient data, restricted to plotting window ──────────────────────
+    target_data = new_patient_data[end - length(parameters.plot_time) + 1:end, :]
 
     # ── Plot ──────────────────────────────────────────────────────────────────
-    @info "Plotting results for variable $(name)..."
+    @info "Plotting results for $(name)..."
     plots = [
         begin
-            p = plot(;                          
+            p = plot(;
                 title  = parameters.labels[i],
                 xlabel = "time",
                 ylabel = parameters.units[i],
                 #ylims  = parameters.ylims[i],
             )
-            for (idx, pinn_pred) in enumerate(all_pinns)   
-                plot!(p, parameters.plot_time, pinn_pred[:, i],
-                    label = length(all_pinns) > 1 ? "PINN $idx" : "PINN",
-                    lw = 2)
-            end
+            plot!(p, parameters.plot_time, pinn_pred[:, i],
+                label = "PINN", lw = 2)
             if test == true
-                for (idx, original_ode) in enumerate(all_original_odes)   
-                plot!(p, parameters.plot_time, original_ode[:, i],
-                    label = length(all_original_odes) > 1 ? "Original ODE $idx" : "Original ODE",
-                    lw = 2)
-                end
-            end            
-            plot!(p, parameters.plot_time, original_data[:, i],
-                label = "Data", lw = 2, ls = :dot)
+                plot!(p, parameters.plot_time, original_ode_pred[:, i],
+                    label = "Original ODE", lw = 2)
+            end
+            plot!(p, parameters.plot_time, target_data[:, i],
+                label = "Target Patient", lw = 2, ls = :dot)
             p
         end
         for i in 1:length(parameters.vars)
@@ -107,8 +109,8 @@ function Tester_f(name, ode_parameters; test = false)
     )
     savefig(p1, "figures/$(name).png")
 
-    if test == false 
-        # PLOTING LOSS
+    if test == false
+        # PLOTTING LOSS
         losses = data["losses"]
         n_epochs = length(losses)
         epochs = 1:n_epochs
@@ -121,7 +123,7 @@ function Tester_f(name, ode_parameters; test = false)
             marker = :circle,
             markersize = 3,
             legend = false)
-        
+
         savefig(p2, "figures/$(name)_loss.png")
     end
 end #function
