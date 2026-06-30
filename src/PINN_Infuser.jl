@@ -9,7 +9,9 @@ using Statistics
 using Zygote
 using OrdinaryDiffEq: Vern7
 using Lux
+using DataInterpolations: LinearInterpolation
 using Base.Threads
+using JLD2
 
 include("Parameters.jl")
 using .ParametersMod: parameters

@@ -4,12 +4,12 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "local" # CHANGE "hpc" or "local"
+working_on = "hpc" # CHANGE "hpc" or "local"
 
-# i = parse(Int, ARGS[1])
-i = 1
+i = parse(Int, ARGS[1])
+#i = 1
 
-number_of_patients = 10 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
+number_of_patients = 25 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "periodicity"]
 names = [
@@ -51,7 +51,7 @@ end
 training = (
     vars = [1,2,3,4,5,6],
     n_neurons_per_layer = 10,
-    lr = 1e-3,
+    lr = 1e-4,
     dtmax = 1e-2,
     nn_output_weight = 1.0, # possibly lower
     iterations = 1000,
@@ -60,7 +60,7 @@ training = (
     num_of_cycles = 1,
     seed = 42,
     active = active,
-    early_stopping_start = 100,
+    early_stopping_start = 20,
     range_to_plot = 5.0,
     number_of_patients = number_of_patients
 )
@@ -114,7 +114,7 @@ config = (
     deriv_weight = 1e-5,
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1e-5,
-    min_loss = 1e-5,
+    min_loss = 1e-6,
     dt = dt
 )
 
