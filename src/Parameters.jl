@@ -6,8 +6,8 @@ using Lux
 
 working_on = "hpc" # CHANGE "hpc" or "local"
 
-# i = parse(Int, ARGS[1])
-i = 1
+#i = parse(Int, ARGS[1])
+i = 3
 
 number_of_patients = 25 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
 
@@ -57,10 +57,16 @@ loaded_training_data_list = map(training_patient_files) do fname
     readdlm(joinpath(data_dir, fname), ',', Float64, '\n'; skipstart=1)
 end
 
+if i == 3
+    lr = 1e-5
+else
+    lr = 1e-4
+end
+
 training = (
     vars = [1,2,3,4,5,6],
     n_neurons_per_layer = 10,
-    lr = 1e-4,
+    lr = lr,
     dtmax = 1e-2,
     nn_output_weight = 1.0, # possibly lower
     iterations = 1000,

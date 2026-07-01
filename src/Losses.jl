@@ -16,7 +16,7 @@ function data_loss(pred_norm, data_norm, data_vars, data_weight)
     return data_weight * l / length(data_vars)
 end
 
-function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physics_weight, ode_problem, nn, p_NN, st, dt, nn_vars=nothing)
+function physics_loss(pred_mat, target_data, training_steps, ode_params, physics_vars, physics_weight, ode_problem, nn, p_NN, st, dt, nn_vars)
     n  = size(pred_mat, 1)
     l  = zero(eltype(pred_mat))
 
@@ -25,29 +25,21 @@ function physics_loss(pred_mat, training_steps, ode_params, physics_vars, physic
     end
 
     for i in 2:n-1
-        t  = training_steps[i]
-        u  = pred_mat[i, :]
+        t    = training_steps[i]
+        u    = pred_mat[i, :]
+        u_obs = target_data[i, :]   # observed patient state at same timestep
 
         du_ode = Zygote.ignore() do
             Vector{Float64}(ode_problem.f(Vector{Float64}(u), ode_params, t))
         end
 
-        # Only compute NN contribution if nn_vars is defined and not empty
-        du_num = (pred_mat[i+1, :] .- pred_mat[i-1, :]) ./ (2 * dt)
-        
-        if !isnothing(nn_vars) && length(nn_vars) > 0
-            nn_contrib_full = nn(u, p_NN, st)[1]  # NN correction, must stay in AD graph
-            for j in physics_vars
-                # Find the index in nn_vars if j is in nn_vars, otherwise use ODE only
-                idx = findfirst(==(j), nn_vars)
-                correction = isnothing(idx) ? zero(eltype(pred_mat)) : nn_contrib_full[idx]
-                residual = du_num[j] - (du_ode[j] + correction)
-                l += abs2(residual / du_scale[j])
-            end
-        else
-            # Use ODE only, no NN correction
-            for j in physics_vars
-                residual = du_num[j] - du_ode[j]
+        nn_input   = vcat(u_obs, u)              # (2*n_states,) — matches training
+        nn_contrib = nn(nn_input, p_NN, st)[1]   # (length(nn_vars),)
+        du_num     = (pred_mat[i+1, :] .- pred_mat[i-1, :]) ./ (2 * dt)
+
+        for (k, j) in enumerate(nn_vars)
+            if j in physics_vars
+                residual = du_num[j] - (du_ode[j] + nn_contrib[k])
                 l += abs2(residual / du_scale[j])
             end
         end
@@ -75,19 +67,16 @@ function mass_conservation_loss(pred_mat, mass_conservation_weight, dt)
     return mass_conservation_weight * l / 6 # 6 pairs
 end
 
-function zero_mean_loss(pred_mat, p_NN, nn, st, nn_vars, zm_vars, zm_weight)
+function zero_mean_loss(pred_mat, target_data, p_NN, nn, st, nn_vars, zm_vars, zm_weight)
     l = 0.0
     time = size(pred_mat, 1)
-    count = 0
     for (k, i) in enumerate(nn_vars)
         if i in zm_vars
-            # nn_over_time collects the k-th output of the NN (corresponding to state i) over time
-            nn_over_time = [nn(pred_mat[ti, :], p_NN, st)[1][k] for ti in 1:time]
+            nn_over_time = [nn(vcat(target_data[ti, :], pred_mat[ti, :]), p_NN, st)[1][k] for ti in 1:time]
             l += abs2(sum(nn_over_time))
-            count += 1
         end
     end
-    return count > 0 ? zm_weight * l / count : zero(l)
+    return zm_weight * l / length(zm_vars)
 end
 
 function negativity_loss(pred_mat, neg_vars, neg_weight)
@@ -106,37 +95,6 @@ function periodicity_loss(pred_mat, periodic_weight, periodic_vars)
     return periodic_weight * l / length(periodic_vars)
 end
 
-function firstderiv_loss(pred_mat, target_data, firstderiv_vars, deriv_weight, dt)
-    # Compute first derivatives of predictions and targets
-    n = size(pred_mat, 1)
-    l = zero(eltype(pred_mat))
-    
-    # Compute numerical derivatives using central difference
-    pred_deriv = similar(pred_mat)
-    target_deriv = similar(target_data)
-    
-    # Forward difference at t=1
-    pred_deriv[1, :] .= (pred_mat[2, :] .- pred_mat[1, :]) ./ dt
-    target_deriv[1, :] .= (target_data[2, :] .- target_data[1, :]) ./ dt
-    
-    # Central differences for internal points
-    for i in 2:n-1
-        pred_deriv[i, :] .= (pred_mat[i+1, :] .- pred_mat[i-1, :]) ./ (2 * dt)
-        target_deriv[i, :] .= (target_data[i+1, :] .- target_data[i-1, :]) ./ (2 * dt)
-    end
-    
-    # Backward difference at t=n
-    pred_deriv[n, :] .= (pred_mat[n, :] .- pred_mat[n-1, :]) ./ dt
-    target_deriv[n, :] .= (target_data[n, :] .- target_data[n-1, :]) ./ dt
-    
-    # Compute loss on specified variables
-    for j in firstderiv_vars
-        l += mean(abs2, pred_deriv[:, j] .- target_deriv[:, j])
-    end
-    
-    return deriv_weight * l / length(firstderiv_vars)
-end
-
 function loss(active::Vector{String}, ctx, config)
     total = zero(eltype(ctx.pred_mat))
     for key in active
@@ -144,7 +102,7 @@ function loss(active::Vector{String}, ctx, config)
                 data_loss(ctx.pred_norm, ctx.data_norm, 
                             config.data_vars, config.data_weight)
                 elseif key == "physics" 
-                    physics_loss(ctx.pred_mat, ctx.training_steps,
+                    physics_loss(ctx.pred_mat, ctx.target_data, ctx.training_steps,
                                 ctx.ode_params, config.physics_vars,
                                 config.physics_weight, ctx.ode_problem,
                                 ctx.nn, ctx.p_NN, ctx.st, config.dt, ctx.nn_vars)
@@ -152,7 +110,7 @@ function loss(active::Vector{String}, ctx, config)
                     mass_conservation_loss(ctx.pred_mat,
                                         config.mass_conservation_weight, config.dt)
                 elseif key == "zero_mean"
-                    zero_mean_loss(ctx.pred_mat, ctx.p_NN, ctx.nn, ctx.st,
+                    zero_mean_loss(ctx.pred_mat, ctx.target_data, ctx.p_NN, ctx.nn, ctx.st,
                                 ctx.nn_vars, config.zm_vars, config.zm_weight)
                 elseif key == "negativity"
                     negativity_loss(ctx.pred_mat, config.neg_vars, config.neg_weight)
