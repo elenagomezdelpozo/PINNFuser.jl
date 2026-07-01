@@ -17,7 +17,7 @@ using OrdinaryDiffEq
 using Plots
 using ComponentArrays
 using Random
-using DataInterpolations: LinearInterpolation, ExtrapolationType
+using DataInterpolations: LinearInterpolation
 """
     Tester_f(name, new_patient_data; test = true)
 
@@ -53,8 +53,8 @@ function Tester_f(name, new_patient_data::AbstractMatrix{Float64}; test = true)
     @assert size(new_patient_data, 1) == length(t_obs) "new_patient_data must have $(length(t_obs)) rows matching time length"
     @assert size(new_patient_data, 2) == n_states "new_patient_data must have $(n_states) columns matching state dimension"
  
-    itps = [LinearInterpolation(new_patient_data[:, s], t_obs; extrapolation = ExtrapolationType.Extension) for s in 1:n_states]
- 
+    t_obs = Float32.(parameters.training_time)
+    
     # ── Baseline ODE (no NN correction) ─────────────────────────────────────────
     ode_prob_base = ODEProblem(ModelMod.NIK_2ch!, parameters.u0, parameters.tspan, parameters.ode_params)
     ode_sol_base  = solve(ode_prob_base, Vern7();
@@ -63,7 +63,10 @@ function Tester_f(name, new_patient_data::AbstractMatrix{Float64}; test = true)
 
     # ── Solve PINN-corrected ODE against the new patient ────────────────────────
     function pinn_ode!(du, u, p, t)
-        u_obs = Float64[itps[s](t) for s in 1:n_states]
+        u_obs = Zygote.ignore() do
+            idx = clamp(searchsortedfirst(t_obs, Float32(t)), 1, length(t_obs))
+            Float32[new_patient_data[idx, s] for s in 1:n_states]
+        end        
         nn_input = vcat(u_obs, Float64.(u))             # (2*n_states,) — matches training
         nn_output = parameters.NN(nn_input, p, trained_st)[1]
         ModelMod.NIK_2ch!(du, u, parameters.ode_params, t)

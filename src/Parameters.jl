@@ -4,10 +4,10 @@ module ParametersMod
 using DelimitedFiles
 using Lux
 
-working_on = "local" # CHANGE "hpc" or "local"
+working_on = "hpc" # CHANGE "hpc" or "local"
 
 # i = parse(Int, ARGS[1])
-i = 3
+i = 1
 
 number_of_patients = 25 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
 

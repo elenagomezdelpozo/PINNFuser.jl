@@ -9,7 +9,7 @@ using Statistics
 using Zygote
 using OrdinaryDiffEq: Vern7
 using Lux
-using DataInterpolations: LinearInterpolation, ExtrapolationType
+using DataInterpolations: LinearInterpolation
 using Base.Threads
 using JLD2
 
@@ -92,7 +92,7 @@ function PINN_Infuser_f(
 
         itp_list = map(target_f32_list) do data_p   # data_p: (T × n_states)
             map(1:n_states) do s
-                LinearInterpolation(new_patient_data[:, s], t_obs; extrapolation = ExtrapolationType.Extension)
+                LinearInterpolation(data_p[:, s], t_obs)
             end
         end
 
@@ -115,25 +115,23 @@ function PINN_Infuser_f(
             u0_vec = Float32.(Vector(ode_problem.u0))
 
             function pinn_ode(u, p, t)
-                # u_obs(t) via interpolation — invisible to Zygote
+                # u_obs(t) via nearest-neighbour lookup — invisible to Zygote
                 u_obs = Zygote.ignore() do
-                    Float32[itps_p[s](t) for s in 1:n_states]
+                    idx = clamp(searchsortedfirst(t_obs, Float32(t)), 1, length(t_obs))
+                    Float32[target_f32_list[patient_idx][idx, s] for s in 1:n_states]
                 end
 
-                # NN input: concatenate observed and simulated states
-                nn_input = vcat(u_obs, Float32.(u))          # (2*n_states,)
-                nn_out   = Float64.(nn(nn_input, p, st)[1])  # (length(nn_vars),)
+                nn_input = vcat(u_obs, Float32.(u))
+                nn_out   = Float64.(nn(nn_input, p, st)[1])
 
-                # Physics derivative (Zygote-invisible — no params to differentiate)
                 du_physics = Zygote.ignore() do
                     Vector{Float64}(ode_problem.f(Float64.(u), ode_params, t))
                 end
 
-                # Apply corrections only to nn_vars
                 correction = [i in nn_vars ?
-                              Float64(nn_out_weight) * nn_out[findfirst(==(i), nn_vars)] :
-                              zero(eltype(p))
-                              for i in 1:length(u0_vec)]
+                            Float64(nn_out_weight) * nn_out[findfirst(==(i), nn_vars)] :
+                            zero(eltype(p))
+                            for i in 1:length(u0_vec)]
 
                 return du_physics .+ correction
             end
