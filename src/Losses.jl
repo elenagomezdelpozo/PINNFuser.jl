@@ -56,15 +56,17 @@ function mass_conservation_loss(pred_mat, mass_conservation_weight, dt)
     ∫Qs   = sum((Qs[1:end-1]   .+ Qs[2:end])   ./ 2) * dt
     ∫Qsv  = sum((Qsv[1:end-1]  .+ Qsv[2:end])  ./ 2) * dt
 
-    mean_flows = (∫Qav , ∫Qmv , ∫Qs , ∫Qsv) 
+    # Normalise by mean magnitude so all terms are dimensionless and O(1)
+    mean_mag = (abs(∫Qav) + abs(∫Qmv) + abs(∫Qs) + abs(∫Qsv)) / 4 + 1f-6
+    flows = (∫Qav, ∫Qmv, ∫Qs, ∫Qsv) ./ mean_mag
+
     l = zero(eltype(pred_mat))
-    # Comparing all pairs of mean flows: (av-mv, av-s, av-sv, mv-s, mv-sv, s-sv)
     for i in 1:3
         for j in i+1:4
-            l += abs2(mean_flows[i] - mean_flows[j])
+            l += abs2(flows[i] - flows[j])
         end
     end
-    return mass_conservation_weight * l / 6 # 6 pairs
+    return mass_conservation_weight * l / 6
 end
 
 function zero_mean_loss(pred_mat, target_data, p_NN, nn, st, nn_vars, zm_vars, zm_weight)

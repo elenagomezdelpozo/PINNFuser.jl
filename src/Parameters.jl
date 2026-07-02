@@ -57,16 +57,10 @@ loaded_training_data_list = map(training_patient_files) do fname
     readdlm(joinpath(data_dir, fname), ',', Float64, '\n'; skipstart=1)
 end
 
-if i == 3
-    lr = 1e-5
-else
-    lr = 1e-4
-end
-
 training = (
     vars = [1,2,3,4,5,6],
     n_neurons_per_layer = 10,
-    lr = lr,
+    lr = 1e-4,
     dtmax = 1e-2,
     nn_output_weight = 1.0, # possibly lower
     iterations = 1000,
