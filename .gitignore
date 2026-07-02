@@ -5,3 +5,4 @@ hpc/scripts/hpc_logs_25/*
 full_error.txt
 data_figures/*
 figures/*
+data/ODE_and_targets.png

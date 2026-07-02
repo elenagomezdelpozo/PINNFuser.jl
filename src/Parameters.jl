@@ -80,9 +80,9 @@ independent = (
     num_of_samples_per_cycle = 150,
     τ = 1.0,
     Eshift = 0.0,
-        #  pLV, pLA, psa,  psv,  Vlv,   Vla, Qav, Qmv, Qs, Qsv 
-    u0 =  [9.0, 9.0, 70.0, 21.0, 120.0, 55.0, 0.0, 0.0, 0.0, 0.0],
-              # τ, τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la 
+         #  pLV,  pLA,  psa,  psv,  Vlv,   Vla, Qav, Qmv, Qs, Qsv 
+    u0 =  [11.0, 11.0, 40.0, 6.0, 200.0, 115.0, 0.0, 0.0, 0.0, 0.0],
+          # τ, τₑₛ_lv, τₑₚ_lv, τₑₛ_la, τₑₚ_la 
     t_params = [1.0, 0.3, 0.45, 0.92, 0.09],  
                 # Rmv, Zao, Rs, Rsv, Csa, Csv, Eₘₐₓ_lv, Eₘᵢₙ_lv, Eₘₐₓ_la, Eₘᵢₙ_la 
     ode_params = [0.013, 0.002, 1.292, 0.07, 1.023, 10.9, 5.2, 0.0709, 0.2, 0.06],
