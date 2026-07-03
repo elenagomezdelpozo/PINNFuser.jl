@@ -6,10 +6,10 @@ using Lux
 
 working_on = "hpc" # CHANGE "hpc" or "local"
 
-#i = parse(Int, ARGS[1])
-i = 3
+i = parse(Int, ARGS[1])
+# i = 3
 
-number_of_patients = 25 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
+number_of_patients = 50 # CHANGE number of patients (20, 50, 100, 200, 500, 1000)
 
 actives = ["data", "physics", "mass", "zero_mean", "negativity", "periodicity"]
 names = [
@@ -60,7 +60,7 @@ end
 training = (
     vars = [1,2,3,4,5,6],
     n_neurons_per_layer = 10,
-    lr = 1e-4,
+    lr = 1e-3,
     dtmax = 1e-2,
     nn_output_weight = 1.0, # possibly lower
     iterations = 1000,
@@ -114,7 +114,7 @@ training_time = range(independent.tspan[2]- independent.τ*training.num_of_cycle
 
 config = (
     data_vars = [1, 2, 3, 4, 5, 6],
-    data_weight = 1e-2,
+    data_weight = 1e-1,
     physics_vars = [1, 2, 3],
     physics_weight = 1e-5,
     mass_conservation_weight = 1.0,
@@ -126,7 +126,7 @@ config = (
     deriv_weight = 1e-5,
     periodic_vars = [1,2,3,4,5,6],
     periodic_weight = 1e-5,
-    min_loss = 1e-6,
+    min_loss = 1e-7,
     dt = dt
 )
 

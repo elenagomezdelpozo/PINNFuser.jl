@@ -1,7 +1,8 @@
 .DS_Store
 Manifest.toml
 .history/*
-hpc/scripts/hpc_logs_25/*
+hpc_scripts/hpc_logs_25/*
+hpc_scripts/hpc_logs_50/*
 full_error.txt
 data_figures/*
 figures/*
