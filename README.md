@@ -1,6 +1,6 @@
 # PINNFuser.jl
 
-**PINNFuser** is a research-oriented Julia library for enhancing ordinary differential equation (ODE) models using Physics-Informed Neural Networks (PINNs).
+**PINNFuser** is a research-oriented Julia library for enhancing ordinary differential equation (ODE) models of the cardiovascular system using Physics-Informed Neural Networks (PINNs).
 
 The project was developed as part of a bachelor's thesis and focuses on combining physics-based models with data-driven neural network corrections, with particular emphasis on cardiovascular system modeling.
 
@@ -10,9 +10,9 @@ The project was developed as part of a bachelor's thesis and focuses on combinin
 
 Physics-Informed Neural Networks (PINNs) allow known physical laws to be incorporated directly into the training process of a neural network. **PINNFuser** provides a simple interface for applying PINNs to ODE-based models, enabling improved accuracy when only limited measurement data are available.
 
-There are several loss configurations that can be implemented (see `src/Losses.jl`) in combinations of two: data, first derivative, mass conservation, periodicity, non-negative volumes and zero-mean contributions.
+There are several loss configurations that can be implemented (see `src/Losses.jl`) in pair combinations: data, first derivative, mass conservation, periodicity, non-negative volumes and zero-mean contributions.
 
-`src/PINN_Infuser` is the core file of this training architecture. Refer to it to fully comprehend the nature of this repository.
+`src/PINN_Infuser` is the core file of this training architecture. Refer to it to fully understand the nature of this repository.
 
 ## Installation
 
@@ -38,7 +38,7 @@ The figure below shows an example result obtained using a one-chamber cardiovasc
 
 ![Example of training on data loss iteration 101](figures/iter_101.png)
 
-See the full worked example — including model definition, training, and extrapolation — in the [one-chamber model example](https://github.com/elenagomezdelpozo/PINNFuser.jl/blob/main/examples/OneChamberModelCVS).
+This is the 101th iteration of a training on data and periodicity loss. Looking at the 4th variable, systemic venous pressure.
 
 ---
 
